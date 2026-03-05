@@ -47,6 +47,7 @@ const step3Ind = document.getElementById('step3Indicator')! as HTMLDivElement;
 const detailOverlay = document.getElementById('detailOverlay')! as HTMLDivElement;
 const popupAvatar = document.getElementById('popupAvatar')! as HTMLDivElement;
 const popupMemberNo = document.getElementById('popupMemberNo')! as HTMLParagraphElement;
+const popupMemberName = document.getElementById('popupMemberName')! as HTMLParagraphElement;
 const popupExpected = document.getElementById('popupExpected')! as HTMLSpanElement;
 const popupPrincipal = document.getElementById('popupPrincipal')! as HTMLSpanElement;
 const popupInstallment = document.getElementById('popupInstallment')! as HTMLSpanElement;
@@ -67,6 +68,7 @@ let outputName = 'modified.xlsx';
 
 interface MemberRow {
   memberNo: string | number;
+  memberName: string;
   rowIdx: number;
   expected: number;
   principal: number;
@@ -300,6 +302,7 @@ async function processFile(file: File) {
 
     // ── Collect member rows with breakdown ──
     const memberNoColIdx = colMap['MemberNo'];
+    const memberNameIdx = colMap['MemberName'];
     const pLoanCol = colMap['PrincipalLoan'];
     const lBalCol = colMap['LoanBalance'];
     const aBalCol = colMap['AdvanceBalance'];
@@ -312,6 +315,9 @@ async function processFile(file: File) {
         const cell = sheet[XLSX.utils.encode_cell({ r, c: memberNoColIdx })];
         if (!cell || cell.v === undefined || cell.v === null || cell.v === '') continue;
         const memberNo = cell.v as string | number;
+
+        const nameCell = memberNameIdx !== undefined ? sheet[XLSX.utils.encode_cell({ r, c: memberNameIdx })] : null;
+        const memberName = nameCell && nameCell.v ? String(nameCell.v).trim() : 'Unknown';
 
         const getNum = (cIdx?: number): number => {
           if (cIdx === undefined) return 0;
@@ -331,7 +337,7 @@ async function processFile(file: File) {
 
         const expected = installment + loanInterest + advanceBalance + advanceInterest + monthlyShare + riskFund;
 
-        collected.push({ memberNo, rowIdx: r, expected, principal, installment, loanBalance, loanInterest, advanceBalance, advanceInterest, monthlyShare, riskFund });
+        collected.push({ memberNo, memberName, rowIdx: r, expected, principal, installment, loanBalance, loanInterest, advanceBalance, advanceInterest, monthlyShare, riskFund });
       }
       log(`Loaded ${collected.length} member(s).`, 'success');
     }
@@ -442,9 +448,12 @@ function updateFooterTotals() {
 
 // ─── Detail Popup ─────────────────────────────────────────────────────────────
 function openDetailPopup(m: MemberRow) {
-  const initials = String(m.memberNo).slice(0, 2).toUpperCase();
+  // Use memberName for initials if possible, fallback to memberNo
+  const initialsSrc = m.memberName && m.memberName !== 'Unknown' ? String(m.memberName) : String(m.memberNo);
+  const initials = initialsSrc.slice(0, 2).toUpperCase();
   popupAvatar.textContent = initials;
   popupMemberNo.textContent = String(m.memberNo);
+  popupMemberName.textContent = m.memberName;
 
   popupExpected.textContent = `KES ${fmt(m.expected)}`;
   popupPrincipal.textContent = m.principal > 0 ? fmt(m.principal) : '—';

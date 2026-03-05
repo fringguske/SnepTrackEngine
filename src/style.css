@@ -916,14 +916,6 @@ body {
   min-width: 0;
 }
 
-.popup-lbl {
-  font-size: 0.66rem;
-  color: var(--text-muted);
-  font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-
 .popup-mno {
   font-size: 0.95rem;
   font-weight: 700;
@@ -931,7 +923,16 @@ body {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  margin-top: 1px;
+  margin-bottom: 2px;
+}
+
+.popup-mname {
+  font-size: 0.72rem;
+  color: #a5b4fc;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .popup-close {
