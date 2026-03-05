@@ -6,7 +6,7 @@ const FORMULA_COLUMNS: string[] = [
   'Total RePaid', 'MonthlyShare', 'TotalAdvance', 'Shares C/F', 'Loans C/F', 'TotalCash',
 ];
 
-const PAYMENT_COLS = ['Cash', 'Paybill', 'Bank', 'RiskFund'] as const;
+const PAYMENT_COLS = ['Cash', 'Paybill', 'Bank', 'LoanRepayment', 'AdvanceRepayment'] as const;
 type PaymentCol = typeof PAYMENT_COLS[number];
 
 // ─── DOM refs — Step 1 ─────────────────────────────────────────────────────────
@@ -56,7 +56,8 @@ const popupLoanInterest = document.getElementById('popupLoanInterest')! as HTMLS
 const popupAdvBalance = document.getElementById('popupAdvBalance')! as HTMLSpanElement;
 const popupAdvInterest = document.getElementById('popupAdvInterest')! as HTMLSpanElement;
 const popupMShare = document.getElementById('popupMShare')! as HTMLSpanElement;
-const popupRiskFund = document.getElementById('popupRiskFund')! as HTMLSpanElement;
+const popupLoanRepayment = document.getElementById('popupLoanRepayment')! as HTMLInputElement;
+const popupAdvRepayment = document.getElementById('popupAdvRepayment')! as HTMLInputElement;
 const popupClose = document.getElementById('popupClose')! as HTMLButtonElement;
 const popupDismiss = document.getElementById('popupDismiss')! as HTMLButtonElement;
 
@@ -78,11 +79,12 @@ interface MemberRow {
   advanceBalance: number;
   advanceInterest: number;
   monthlyShare: number;
-  riskFund: number;
+  loanRepayment: number;
+  advRepayment: number;
 }
 
 /** Live map of entered amounts so we don't lose them if we redraw or for totals */
-const paymentMap = new Map<number, { cash: number; paybill: number; bank: number }>();
+const paymentMap = new Map<number, { cash: number; paybill: number; bank: number; loanRepayment: number; advRepayment: number }>();
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 function formatBytes(bytes: number): string {
@@ -306,6 +308,7 @@ async function processFile(file: File) {
     const pLoanCol = colMap['PrincipalLoan'];
     const lBalCol = colMap['LoanBalance'];
     const aBalCol = colMap['AdvanceBalance'];
+    const mShareCol = colMap['MonthlyShare'];
     const collected: MemberRow[] = [];
 
     if (memberNoColIdx === undefined) {
@@ -332,12 +335,13 @@ async function processFile(file: File) {
         const loanInterest = loanBalance * 0.015;
         const advanceBalance = getNum(aBalCol);
         const advanceInterest = advanceBalance * 0.10;
-        const monthlyShare = 500;
-        const riskFund = 50;
+        const monthlyShare = getNum(mShareCol); // Extracted from Excel
+        const loanRepayment = 0;
+        const advRepayment = 0;
 
-        const expected = installment + loanInterest + advanceBalance + advanceInterest + monthlyShare + riskFund;
+        const expected = installment + loanInterest + advanceBalance + advanceInterest + monthlyShare;
 
-        collected.push({ memberNo, memberName, rowIdx: r, expected, principal, installment, loanBalance, loanInterest, advanceBalance, advanceInterest, monthlyShare, riskFund });
+        collected.push({ memberNo, memberName, rowIdx: r, expected, principal, installment, loanBalance, loanInterest, advanceBalance, advanceInterest, monthlyShare, loanRepayment, advRepayment });
       }
       log(`Loaded ${collected.length} member(s).`, 'success');
     }
@@ -370,7 +374,7 @@ function showContributionSection(members: MemberRow[]) {
   paymentMap.clear(); // Reset map on re-process
 
   members.forEach((m, i) => {
-    paymentMap.set(m.rowIdx, { cash: 0, paybill: 0, bank: 0 }); // Init to 0
+    paymentMap.set(m.rowIdx, { cash: 0, paybill: 0, bank: 0, loanRepayment: 0, advRepayment: 0 }); // Init to 0
 
     const tr = document.createElement('tr');
     tr.dataset.rowIdx = String(m.rowIdx);
@@ -463,7 +467,17 @@ function openDetailPopup(m: MemberRow) {
   popupAdvBalance.textContent = m.advanceBalance > 0 ? fmt(m.advanceBalance) : '—';
   popupAdvInterest.textContent = m.advanceInterest > 0 ? fmt(m.advanceInterest) : '—';
   popupMShare.textContent = fmt(m.monthlyShare);
-  popupRiskFund.textContent = fmt(m.riskFund);
+
+  const payData = paymentMap.get(m.rowIdx)!;
+  popupLoanRepayment.value = payData.loanRepayment ? payData.loanRepayment.toString() : '';
+  popupAdvRepayment.value = payData.advRepayment ? payData.advRepayment.toString() : '';
+
+  popupLoanRepayment.oninput = () => {
+    payData.loanRepayment = parseFloat(popupLoanRepayment.value) || 0;
+  };
+  popupAdvRepayment.oninput = () => {
+    payData.advRepayment = parseFloat(popupAdvRepayment.value) || 0;
+  };
 
   detailOverlay.classList.remove('hidden');
   document.body.style.overflow = 'hidden'; // prevent scrolling behind popup
@@ -500,27 +514,21 @@ function applyContributions() {
   }
 
   let writes = 0;
-  let riskFundWrites = 0;
 
   for (const [rowIdx, payment] of paymentMap) {
-    const { cash, paybill, bank } = payment;
-    const sum = cash + paybill + bank;
+    const { cash, paybill, bank, loanRepayment, advRepayment } = payment;
 
-    const vals: Record<'Cash' | 'Paybill' | 'Bank', number> = { Cash: cash, Paybill: paybill, Bank: bank };
-    for (const col of ['Cash', 'Paybill', 'Bank'] as const) {
+    const vals: Record<PaymentCol, number> = {
+      Cash: cash, Paybill: paybill, Bank: bank,
+      LoanRepayment: loanRepayment, AdvanceRepayment: advRepayment
+    };
+
+    for (const col of PAYMENT_COLS) {
       const cIdx = payColIdx[col];
       if (cIdx === undefined) continue;
       const addr = XLSX.utils.encode_cell({ r: rowIdx, c: cIdx });
       sheet[addr] = { t: 'n', v: vals[col] || 0 }; // write 0 if blank/unpaid
       if (vals[col] > 0) writes++;
-    }
-
-    if (sum > 0) {
-      const rfIdx = payColIdx['RiskFund'];
-      if (rfIdx !== undefined) {
-        sheet[XLSX.utils.encode_cell({ r: rowIdx, c: rfIdx })] = { t: 'n', v: 50 };
-        riskFundWrites++;
-      }
     }
   }
 
@@ -535,7 +543,7 @@ function applyContributions() {
   step3Ind.classList.remove('active');
   step3Ind.classList.add('done');
 
-  console.log(`Written: ${writes} payment value(s), ${riskFundWrites} RiskFund(s).`);
+  console.log(`Written: ${writes} payment value(s).`);
 }
 
 // ─── Event wiring ─────────────────────────────────────────────────────────────
