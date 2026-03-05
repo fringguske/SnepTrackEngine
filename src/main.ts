@@ -380,10 +380,6 @@ function showContributionSection(members: MemberRow[]) {
     const tr = document.createElement('tr');
     tr.dataset.rowIdx = String(m.rowIdx);
 
-    const tdIdx = document.createElement('td');
-    tdIdx.className = 'td-idx';
-    tdIdx.textContent = String(i + 1);
-
     const tdMno = document.createElement('td');
     tdMno.className = 'td-mno';
     tdMno.textContent = String(m.memberNo);
@@ -408,12 +404,12 @@ function showContributionSection(members: MemberRow[]) {
         if (type === 'paybill') pay.paybill = val;
         if (type === 'bank') pay.bank = val;
         updateFooterTotals();
+        autoSaveToSheet(m.rowIdx);
       });
       td.appendChild(input);
       return td;
     };
 
-    tr.appendChild(tdIdx);
     tr.appendChild(tdMno);
     tr.appendChild(tdExp);
     tr.appendChild(createInputCol('cash'));
@@ -475,9 +471,11 @@ function openDetailPopup(m: MemberRow) {
 
   popupLoanRepayment.oninput = () => {
     payData.loanRepayment = parseFloat(popupLoanRepayment.value) || 0;
+    autoSaveToSheet(m.rowIdx);
   };
   popupAdvRepayment.oninput = () => {
     payData.advRepayment = parseFloat(popupAdvRepayment.value) || 0;
+    autoSaveToSheet(m.rowIdx);
   };
 
   detailOverlay.classList.remove('hidden');
@@ -492,6 +490,36 @@ function closeDetailPopup() {
 [popupClose, popupDismiss].forEach(btn => btn.addEventListener('click', closeDetailPopup));
 detailOverlay.addEventListener('click', (e) => { if (e.target === detailOverlay) closeDetailPopup(); });
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeDetailPopup(); });
+
+// ─── Auto-save: write current row data to in-memory workbook ──────────────────
+function autoSaveToSheet(rowIdx: number) {
+  if (!processedWorkbook) return;
+  const sheet = processedWorkbook.Sheets[processedSheetName];
+  // Build column map if not cached
+  const ref = sheet['!ref'];
+  if (!ref) return;
+  const range = XLSX.utils.decode_range(ref);
+  const colCache: Partial<Record<PaymentCol, number>> = {};
+  for (let c = range.s.c; c <= range.e.c; c++) {
+    const cell = sheet[XLSX.utils.encode_cell({ r: 0, c })];
+    if (!cell) continue;
+    const hdr = (cell.v as string)?.toString().trim() as PaymentCol;
+    if (PAYMENT_COLS.includes(hdr)) colCache[hdr] = c;
+  }
+  const payment = paymentMap.get(rowIdx);
+  if (!payment) return;
+  const { cash, paybill, bank, loanRepayment, advRepayment } = payment;
+  const vals: Record<PaymentCol, number> = {
+    Cash: cash, Paybill: paybill, Bank: bank,
+    LoanRepayment: loanRepayment, AdvanceRepayment: advRepayment,
+  };
+  for (const col of PAYMENT_COLS) {
+    const cIdx = colCache[col];
+    if (cIdx === undefined) continue;
+    const addr = XLSX.utils.encode_cell({ r: rowIdx, c: cIdx });
+    sheet[addr] = { t: 'n', v: vals[col] || 0 };
+  }
+}
 
 // ─── Apply contributions & download ──────────────────────────────────────────
 function applyContributions() {
@@ -550,3 +578,15 @@ function applyContributions() {
 // ─── Event wiring ─────────────────────────────────────────────────────────────
 processBtn.addEventListener('click', () => { if (selectedFile) processFile(selectedFile); });
 applyBtn.addEventListener('click', applyContributions);
+
+// ─── Page init: enforce correct state on load ─────────────────────────────────
+// Prevents spinner / formula-filled banner from showing before any file action.
+(function initPageState() {
+  spinner.classList.add('hidden');
+  formulaBanner.classList.add('hidden');
+  logCard.classList.add('hidden');
+  step2Section.classList.add('hidden');
+  fileInfo.classList.add('hidden');
+  processBtn.disabled = true;
+  btnText.textContent = 'Process File';
+})();
