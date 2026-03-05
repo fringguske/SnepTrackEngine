@@ -33,7 +33,6 @@ const logList = document.getElementById('logList')! as HTMLUListElement;
 const formulaBanner = document.getElementById('formulaBanner')! as HTMLDivElement;
 
 // ─── DOM refs — Step 2 ────────────────────────────────────────────────────────
-const step1Section = document.getElementById('step1Section')! as HTMLElement;
 const step2Section = document.getElementById('step2Section')! as HTMLElement;
 const memberTableBody = document.getElementById('memberTableBody')! as HTMLTableSectionElement;
 const applyBtn = document.getElementById('applyBtn')! as HTMLButtonElement;
