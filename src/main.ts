@@ -3,15 +3,9 @@ import './style.css';
 
 // ─── Target columns for formula fill ──────────────────────────────────────────
 const FORMULA_COLUMNS: string[] = [
-  'Total RePaid',
-  'MonthlyShare',
-  'TotalAdvance',
-  'Shares C/F',
-  'Loans C/F',
-  'TotalCash',
+  'Total RePaid', 'MonthlyShare', 'TotalAdvance', 'Shares C/F', 'Loans C/F', 'TotalCash',
 ];
 
-// Payment channel columns to write contributions into
 const PAYMENT_COLS = ['Cash', 'Paybill', 'Bank', 'RiskFund'] as const;
 type PaymentCol = typeof PAYMENT_COLS[number];
 
@@ -39,18 +33,36 @@ const applyBtn = document.getElementById('applyBtn')! as HTMLButtonElement;
 const startOverBtn = document.getElementById('startOverBtn')! as HTMLButtonElement;
 const contribSummary = document.getElementById('contribSummary')! as HTMLDivElement;
 const memberCountEl = document.getElementById('memberCount')! as HTMLSpanElement;
+const paymentProgress = document.getElementById('paymentProgress')! as HTMLDivElement;
+const progressLabel = document.getElementById('progressLabel')! as HTMLSpanElement;
+const progressPct = document.getElementById('progressPct')! as HTMLSpanElement;
+const progressFill = document.getElementById('progressFill')! as HTMLDivElement;
+const colTotalExpected = document.getElementById('colTotalExpected')!;
+const colPaidCount = document.getElementById('colPaidCount')!;
 
 // Step indicator elements
 const step1Ind = document.getElementById('step1Indicator')! as HTMLDivElement;
 const step2Ind = document.getElementById('step2Indicator')! as HTMLDivElement;
 const step3Ind = document.getElementById('step3Indicator')! as HTMLDivElement;
 
-// Footer totals
-const colTotalExpected = document.getElementById('colTotalExpected')!;
-const colTotalCash = document.getElementById('colTotalCash')!;
-const colTotalPaybill = document.getElementById('colTotalPaybill')!;
-const colTotalBank = document.getElementById('colTotalBank')!;
-const colTotalAll = document.getElementById('colTotalAll')!;
+// ─── Modal refs ───────────────────────────────────────────────────────────────
+const modalOverlay = document.getElementById('paymentModalOverlay')! as HTMLDivElement;
+const modalMemberNo = document.getElementById('modalMemberNo')! as HTMLParagraphElement;
+const modalAvatar = document.getElementById('modalAvatar')! as HTMLDivElement;
+const modalExpected = document.getElementById('modalExpected')! as HTMLSpanElement;
+const modalPrincipal = document.getElementById('modalPrincipal')! as HTMLSpanElement;
+const modalInstallment = document.getElementById('modalInstallment')! as HTMLSpanElement;
+const modalAdvBalance = document.getElementById('modalAdvBalance')! as HTMLSpanElement;
+const modalAdvInterest = document.getElementById('modalAdvInterest')! as HTMLSpanElement;
+const modalMShare = document.getElementById('modalMShare')! as HTMLSpanElement;
+const modalRiskFund = document.getElementById('modalRiskFund')! as HTMLSpanElement;
+const modalCash = document.getElementById('modalCash')! as HTMLInputElement;
+const modalPaybill = document.getElementById('modalPaybill')! as HTMLInputElement;
+const modalBank = document.getElementById('modalBank')! as HTMLInputElement;
+const modalTotal = document.getElementById('modalTotal')! as HTMLSpanElement;
+const modalClose = document.getElementById('modalClose')! as HTMLButtonElement;
+const modalCancel = document.getElementById('modalCancel')! as HTMLButtonElement;
+const modalSave = document.getElementById('modalSave')! as HTMLButtonElement;
 
 // ─── State ────────────────────────────────────────────────────────────────────
 let selectedFile: File | null = null;
@@ -58,13 +70,27 @@ let processedWorkbook: XLSX.WorkBook | null = null;
 let processedSheetName = '';
 let outputName = 'modified.xlsx';
 
-/** Each entry represents one member row in the sheet */
 interface MemberRow {
   memberNo: string | number;
   rowIdx: number;
   expected: number;
+  principal: number;
+  installment: number;
+  loanBalance: number;
+  loanInterest: number;
+  advanceBalance: number;
+  advanceInterest: number;
+  monthlyShare: number;
+  riskFund: number;
 }
+
 let memberRows: MemberRow[] = [];
+
+/** Stores recorded payment per sheet rowIdx */
+const paymentMap = new Map<number, { cash: number; paybill: number; bank: number }>();
+
+/** rowIdx of the member whose modal is currently open */
+let activeModalRowIdx: number | null = null;
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 function formatBytes(bytes: number): string {
@@ -111,17 +137,12 @@ function shiftFormula(formula: string, srcRow: number, tgtRow: number): string {
     /([A-Za-z_][\w]*!)?(\$?)([A-Za-z]{1,3})(\$?)(\d+)/g,
     (match, sheet, colDollar, col, rowDollar, row) => {
       if (rowDollar === '$') return match;
-      if (parseInt(row, 10) === srcRow) {
-        return `${sheet ?? ''}${colDollar}${col}${rowDollar}${tgtRow}`;
-      }
+      if (parseInt(row, 10) === srcRow) return `${sheet ?? ''}${colDollar}${col}${rowDollar}${tgtRow}`;
       return match;
     }
   );
 }
 
-/**
- * Returns expected loan installment based on principal brackets.
- */
 function getInstallment(principal: number): number {
   if (principal <= 0) return 0;
   if (principal <= 5000) return 335;
@@ -154,7 +175,7 @@ function getInstallment(principal: number): number {
   if (principal <= 350000) return 14000;
   if (principal <= 400000) return 16000;
   if (principal <= 450000) return 18000;
-  if (principal <= 500000) return 20000; // handles up to 500k
+  if (principal <= 500000) return 20000;
   if (principal <= 550000) return 22000;
   if (principal <= 600000) return 24000;
   if (principal <= 650000) return 26000;
@@ -163,22 +184,18 @@ function getInstallment(principal: number): number {
   if (principal <= 800000) return 32000;
   if (principal <= 850000) return 34000;
   if (principal <= 900000) return 36000;
-  return 36000; // Cap or fallback
+  return 36000;
 }
 
 // ─── File selection ───────────────────────────────────────────────────────────
 function acceptFile(file: File) {
-  if (!file.name.match(/\.xlsx?$/i)) {
-    alert('Please upload an Excel file (.xlsx or .xls).');
-    return;
-  }
+  if (!file.name.match(/\.xlsx?$/i)) { alert('Please upload an Excel file (.xlsx or .xls).'); return; }
   selectedFile = file;
   processedWorkbook = null;
   formulaBanner.classList.add('hidden');
   step2Section.classList.add('hidden');
   logCard.classList.add('hidden');
   setStepActive(1);
-
   fileNameEl.textContent = file.name;
   fileSizeEl.textContent = formatBytes(file.size);
   fileInfo.classList.remove('hidden');
@@ -189,6 +206,7 @@ function clearFile() {
   selectedFile = null;
   processedWorkbook = null;
   memberRows = [];
+  paymentMap.clear();
   fileInput.value = '';
   fileInfo.classList.add('hidden');
   processBtn.disabled = true;
@@ -200,14 +218,10 @@ function clearFile() {
 }
 
 // ─── Drag and drop ────────────────────────────────────────────────────────────
-dropZone.addEventListener('dragover', (e) => {
-  e.preventDefault();
-  dropZone.classList.add('drag-over');
-});
+dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('drag-over'); });
 dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
 dropZone.addEventListener('drop', (e) => {
-  e.preventDefault();
-  dropZone.classList.remove('drag-over');
+  e.preventDefault(); dropZone.classList.remove('drag-over');
   const file = e.dataTransfer?.files[0];
   if (file) acceptFile(file);
 });
@@ -217,7 +231,7 @@ fileInput.addEventListener('change', () => { if (fileInput.files?.[0]) acceptFil
 clearBtn.addEventListener('click', (e) => { e.stopPropagation(); clearFile(); });
 startOverBtn.addEventListener('click', () => clearFile());
 
-// ─── Core: formula fill & processing ──────────────────────────────────────────
+// ─── Core: formula fill & processing ─────────────────────────────────────────
 async function processFile(file: File) {
   setLoading(true);
   resetLog();
@@ -228,7 +242,6 @@ async function processFile(file: File) {
     log('Reading file…');
     const arrayBuffer = await file.arrayBuffer();
     const data = new Uint8Array(arrayBuffer);
-
     const workbook = XLSX.read(data, { type: 'array', cellFormula: true, cellNF: true, cellStyles: true });
 
     const sheetName = workbook.SheetNames[0];
@@ -240,11 +253,10 @@ async function processFile(file: File) {
     if (!ref) throw new Error('Sheet appears to be empty.');
     const range = XLSX.utils.decode_range(ref);
 
-    // Map column names → col index for everything we care about
+    // Build colMap for every header
     const colMap: Record<string, number> = {};
     for (let c = range.s.c; c <= range.e.c; c++) {
-      const cellAddr = XLSX.utils.encode_cell({ r: 0, c });
-      const cell = sheet[cellAddr];
+      const cell = sheet[XLSX.utils.encode_cell({ r: 0, c })];
       if (!cell) continue;
       const header = (cell.v as string)?.toString().trim() ?? '';
       colMap[header] = c;
@@ -253,13 +265,7 @@ async function processFile(file: File) {
     // ── Formula fill ──
     const found = FORMULA_COLUMNS.filter(col => colMap[col] !== undefined);
     const missing = FORMULA_COLUMNS.filter(col => colMap[col] === undefined);
-
-    if (found.length === 0) {
-      throw new Error(
-        'None of the target formula column headers were found in row 1. ' +
-        'Ensure column names exactly match (case-sensitive).'
-      );
-    }
+    if (found.length === 0) throw new Error('None of the target formula column headers found in row 1.');
     log(`Found ${found.length} formula column(s): ${found.join(', ')}`, 'success');
     if (missing.length > 0) log(`Skipped (not found): ${missing.join(', ')}`, 'warn');
 
@@ -274,7 +280,6 @@ async function processFile(file: File) {
         }
       }
     }
-
     log(`Last data row: ${lastRow + 1}`, 'success');
     if (lastRow < 2) throw new Error('No data rows detected below the header row.');
 
@@ -282,26 +287,16 @@ async function processFile(file: File) {
     for (const colName of FORMULA_COLUMNS) {
       const colIdx = colMap[colName];
       if (colIdx === undefined) continue;
-
       const srcAddr = XLSX.utils.encode_cell({ r: 1, c: colIdx });
       const srcCell = sheet[srcAddr];
-
-      if (!srcCell || (srcCell.v === undefined && !srcCell.f)) {
-        log(`"${colName}" — row 2 is empty, skipping.`, 'warn');
-        continue;
-      }
-
+      if (!srcCell || (srcCell.v === undefined && !srcCell.f)) { log(`"${colName}" — row 2 empty, skipping.`, 'warn'); continue; }
       const hasFormula = !!srcCell.f;
       const srcFormula = srcCell.f ?? null;
       let copiedInCol = 0;
-
       for (let tgtRow = 2; tgtRow <= lastRow; tgtRow++) {
         const tgtAddr = XLSX.utils.encode_cell({ r: tgtRow, c: colIdx });
         if (hasFormula && srcFormula) {
-          sheet[tgtAddr] = {
-            t: srcCell.t,
-            f: shiftFormula(srcFormula, 2, tgtRow + 1),
-          };
+          sheet[tgtAddr] = { t: srcCell.t, f: shiftFormula(srcFormula, 2, tgtRow + 1) };
         } else {
           sheet[tgtAddr] = { t: srcCell.t, v: srcCell.v, w: srcCell.w };
         }
@@ -309,67 +304,58 @@ async function processFile(file: File) {
         if (colIdx > range.e.c) range.e.c = colIdx;
         copiedInCol++;
       }
-
       totalCopied += copiedInCol;
       log(`"${colName}" — ${hasFormula ? 'formula' : 'value'} copied to ${copiedInCol} row(s).`, 'success');
     }
-
     sheet['!ref'] = XLSX.utils.encode_range(range);
     log(`Done! ${totalCopied} cells updated.`, 'success');
 
-    // ── Collect MemberNo & Calculate Expected Contribution ──
+    // ── Collect member rows with breakdown ──
     const memberNoColIdx = colMap['MemberNo'];
     const pLoanCol = colMap['PrincipalLoan'];
     const lBalCol = colMap['LoanBalance'];
     const aBalCol = colMap['AdvanceBalance'];
-
     const collected: MemberRow[] = [];
 
     if (memberNoColIdx === undefined) {
-      log('Warning: "MemberNo" column not found — contribution table will be empty.', 'warn');
+      log('Warning: "MemberNo" column not found — contribution table empty.', 'warn');
     } else {
       for (let r = 1; r <= lastRow; r++) {
         const cell = sheet[XLSX.utils.encode_cell({ r, c: memberNoColIdx })];
-        if (cell && cell.v !== undefined && cell.v !== null && cell.v !== '') {
-          const memberNo = cell.v as string | number;
+        if (!cell || cell.v === undefined || cell.v === null || cell.v === '') continue;
+        const memberNo = cell.v as string | number;
 
-          // Gather numbers for expected formula
-          const getNum = (cIdx?: number) => {
-            if (cIdx === undefined) return 0;
-            const c = sheet[XLSX.utils.encode_cell({ r, c: cIdx })];
-            const v = parseFloat(c?.v as string);
-            return isNaN(v) ? 0 : v;
-          };
+        const getNum = (cIdx?: number): number => {
+          if (cIdx === undefined) return 0;
+          const c = sheet[XLSX.utils.encode_cell({ r, c: cIdx })];
+          const v = parseFloat(c?.v as string);
+          return isNaN(v) ? 0 : v;
+        };
 
-          const pLoan = getNum(pLoanCol);
-          const lBal = getNum(lBalCol);
-          const aBal = getNum(aBalCol);
+        const principal = getNum(pLoanCol);
+        const installment = getInstallment(principal);
+        const loanBalance = getNum(lBalCol);
+        const loanInterest = loanBalance * 0.015;
+        const advanceBalance = getNum(aBalCol);
+        const advanceInterest = advanceBalance * 0.10;
+        const monthlyShare = 500;
+        const riskFund = 50;
 
-          const expected =
-            getInstallment(pLoan) +   // Loan installment
-            (lBal * 0.015) +          // 1.5% Loan Interest
-            aBal +                    // AdvanceBalance
-            (aBal * 0.10) +           // 10% Advance Interest
-            500 +                     // Default MonthlyShare
-            50;                       // Fixed RiskFund
+        const expected = installment + loanInterest + advanceBalance + advanceInterest + monthlyShare + riskFund;
 
-          collected.push({ memberNo, rowIdx: r, expected });
-        }
+        collected.push({ memberNo, rowIdx: r, expected, principal, installment, loanBalance, loanInterest, advanceBalance, advanceInterest, monthlyShare, riskFund });
       }
-      log(`Loaded ${collected.length} member(s) from "MemberNo" column.`, 'success');
+      log(`Loaded ${collected.length} member(s).`, 'success');
     }
 
-    // Save state
     processedWorkbook = workbook;
     processedSheetName = sheetName;
     outputName = `${file.name.replace(/\.xlsx?$/i, '')}_filled.xlsx`;
     memberRows = collected;
+    paymentMap.clear();
 
-    // Update log UI
     logIcon.textContent = '✅';
     logTitle.textContent = 'Formulas filled!';
-
-    // Show banner & scroll to contribution section
     formulaBanner.classList.remove('hidden');
     setStepActive(2);
     showContributionSection(collected);
@@ -390,85 +376,141 @@ function showContributionSection(members: MemberRow[]) {
   memberTableBody.innerHTML = '';
 
   members.forEach((m, i) => {
-    const tr = document.createElement('tr');
-    tr.dataset.rowIdx = String(m.rowIdx);
-
-    tr.innerHTML = `
-      <td class="row-index">${i + 1}</td>
-      <td class="member-no-cell">${m.memberNo}</td>
-      <td class="expected-cell">${fmt(m.expected)}</td>
-      <td><input type="number" min="0" step="0.01" placeholder="0.00"
-            class="amount-input cash-input" data-col="Cash" /></td>
-      <td><input type="number" min="0" step="0.01" placeholder="0.00"
-            class="amount-input paybill-input" data-col="Paybill" /></td>
-      <td><input type="number" min="0" step="0.01" placeholder="0.00"
-            class="amount-input bank-input" data-col="Bank" /></td>
-      <td class="row-total">—</td>
-    `;
-
-    // Row total live update
-    tr.querySelectorAll<HTMLInputElement>('.amount-input').forEach(inp => {
-      inp.addEventListener('input', () => {
-        updateRowTotal(tr);
-        updateColumnTotals();
-      });
-    });
-
+    const tr = buildMemberRow(m, i);
     memberTableBody.appendChild(tr);
+
+    // Row click → open modal
+    tr.addEventListener('click', () => openModal(m));
   });
 
-  // Show member count badge
+  // Footer total
+  const sumExpected = members.reduce((s, m) => s + m.expected, 0);
+  colTotalExpected.textContent = sumExpected > 0 ? `KES ${fmt(sumExpected)}` : '—';
+  colPaidCount.textContent = `0 / ${members.length} paid`;
+
   memberCountEl.textContent = String(members.length);
   contribSummary.classList.remove('hidden');
+  paymentProgress.classList.remove('hidden');
+  updateProgress();
 
-  // Show the section and scroll
   step2Section.classList.remove('hidden');
-  setTimeout(() => {
-    step2Section.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  }, 150);
-
-  // Reset totals
-  updateColumnTotals();
+  setTimeout(() => step2Section.scrollIntoView({ behavior: 'smooth', block: 'start' }), 150);
 }
 
-function getRowInputs(tr: HTMLTableRowElement): { cash: number; paybill: number; bank: number } {
-  const cash = parseFloat((tr.querySelector('[data-col="Cash"]') as HTMLInputElement).value) || 0;
-  const paybill = parseFloat((tr.querySelector('[data-col="Paybill"]') as HTMLInputElement).value) || 0;
-  const bank = parseFloat((tr.querySelector('[data-col="Bank"]') as HTMLInputElement).value) || 0;
-  return { cash, paybill, bank };
+function buildMemberRow(m: MemberRow, i: number): HTMLTableRowElement {
+  const tr = document.createElement('tr');
+  tr.dataset.rowIdx = String(m.rowIdx);
+  const paid = paymentMap.has(m.rowIdx);
+  if (paid) tr.classList.add('paid-row');
+
+  const status = paid
+    ? `<span class="status-badge paid">✓ Paid</span>`
+    : `<span class="status-badge unpaid">Pending</span>`;
+
+  tr.innerHTML = `
+    <td class="row-index">${i + 1}</td>
+    <td class="member-no-cell">${m.memberNo}</td>
+    <td class="expected-cell">KES ${fmt(m.expected)}</td>
+    <td class="detail-cell">${m.principal > 0 ? fmt(m.principal) : '—'}</td>
+    <td class="detail-cell">${m.installment > 0 ? fmt(m.installment) : '—'}</td>
+    <td class="detail-cell">${m.advanceBalance > 0 ? fmt(m.advanceBalance) : '—'}</td>
+    <td class="detail-cell">${m.advanceInterest > 0 ? fmt(m.advanceInterest) : '—'}</td>
+    <td class="col-status">${status}</td>
+  `;
+  return tr;
 }
 
-function updateRowTotal(tr: HTMLTableRowElement) {
-  const { cash, paybill, bank } = getRowInputs(tr);
+function refreshRow(m: MemberRow, i: number) {
+  const tr = memberTableBody.querySelector<HTMLTableRowElement>(`tr[data-row-idx="${m.rowIdx}"]`);
+  if (!tr) return;
+  const fresh = buildMemberRow(m, i);
+  fresh.addEventListener('click', () => openModal(m));
+  memberTableBody.replaceChild(fresh, tr);
+}
+
+function updateProgress() {
+  const total = memberRows.length;
+  const paid = paymentMap.size;
+  const pct = total > 0 ? Math.round((paid / total) * 100) : 0;
+  progressLabel.textContent = `${paid} / ${total} recorded`;
+  progressPct.textContent = `${pct}%`;
+  progressFill.style.width = `${pct}%`;
+  colPaidCount.textContent = `${paid} of ${total} members paid`;
+}
+
+// ─── Payment Modal ────────────────────────────────────────────────────────────
+function openModal(m: MemberRow) {
+  activeModalRowIdx = m.rowIdx;
+
+  // Header
+  const initials = String(m.memberNo).slice(0, 2).toUpperCase();
+  modalAvatar.textContent = initials;
+  modalMemberNo.textContent = String(m.memberNo);
+
+  // Breakdown
+  modalExpected.textContent = `KES ${fmt(m.expected)}`;
+  modalPrincipal.textContent = m.principal > 0 ? fmt(m.principal) : '—';
+  modalInstallment.textContent = m.installment > 0 ? fmt(m.installment) : '—';
+  modalAdvBalance.textContent = m.advanceBalance > 0 ? fmt(m.advanceBalance) : '—';
+  modalAdvInterest.textContent = m.advanceInterest > 0 ? fmt(m.advanceInterest) : '—';
+  modalMShare.textContent = fmt(m.monthlyShare);
+  modalRiskFund.textContent = fmt(m.riskFund);
+
+  // Pre-fill existing values
+  const existing = paymentMap.get(m.rowIdx);
+  modalCash.value = existing?.cash ? String(existing.cash) : '';
+  modalPaybill.value = existing?.paybill ? String(existing.paybill) : '';
+  modalBank.value = existing?.bank ? String(existing.bank) : '';
+  updateModalTotal();
+
+  modalOverlay.classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
+  modalCash.focus();
+}
+
+function closeModal() {
+  activeModalRowIdx = null;
+  modalOverlay.classList.add('hidden');
+  document.body.style.overflow = '';
+}
+
+function updateModalTotal() {
+  const cash = parseFloat(modalCash.value) || 0;
+  const paybill = parseFloat(modalPaybill.value) || 0;
+  const bank = parseFloat(modalBank.value) || 0;
   const total = cash + paybill + bank;
-  const cell = tr.querySelector('.row-total') as HTMLTableCellElement;
-  if (total > 0) {
-    cell.textContent = `KES ${fmt(total)}`;
-    cell.classList.add('has-value');
+  modalTotal.textContent = `KES ${fmt(total)}`;
+  modalTotal.classList.toggle('has-value', total > 0);
+}
+
+function saveModalPayment() {
+  if (activeModalRowIdx === null) return;
+  const cash = parseFloat(modalCash.value) || 0;
+  const paybill = parseFloat(modalPaybill.value) || 0;
+  const bank = parseFloat(modalBank.value) || 0;
+
+  if (cash === 0 && paybill === 0 && bank === 0) {
+    // If all zeros, remove from map (clear payment)
+    paymentMap.delete(activeModalRowIdx);
   } else {
-    cell.textContent = '—';
-    cell.classList.remove('has-value');
+    paymentMap.set(activeModalRowIdx, { cash, paybill, bank });
   }
+
+  // Refresh that row in the table
+  const rowIdx = activeModalRowIdx;
+  const memberIdx = memberRows.findIndex(m => m.rowIdx === rowIdx);
+  if (memberIdx !== -1) refreshRow(memberRows[memberIdx], memberIdx);
+
+  updateProgress();
+  closeModal();
 }
 
-function updateColumnTotals() {
-  let sumExpected = 0, sumCash = 0, sumPaybill = 0, sumBank = 0;
-  memberRows.forEach(m => sumExpected += m.expected);
-
-  memberTableBody.querySelectorAll<HTMLTableRowElement>('tr').forEach(tr => {
-    const { cash, paybill, bank } = getRowInputs(tr);
-    sumCash += cash;
-    sumPaybill += paybill;
-    sumBank += bank;
-  });
-
-  colTotalExpected.textContent = sumExpected > 0 ? `KES ${fmt(sumExpected)}` : '—';
-  colTotalCash.textContent = sumCash > 0 ? `KES ${fmt(sumCash)}` : '—';
-  colTotalPaybill.textContent = sumPaybill > 0 ? `KES ${fmt(sumPaybill)}` : '—';
-  colTotalBank.textContent = sumBank > 0 ? `KES ${fmt(sumBank)}` : '—';
-  const grand = sumCash + sumPaybill + sumBank;
-  colTotalAll.textContent = grand > 0 ? `KES ${fmt(grand)}` : '—';
-}
+// Modal event wiring
+[modalClose, modalCancel].forEach(btn => btn.addEventListener('click', closeModal));
+modalOverlay.addEventListener('click', (e) => { if (e.target === modalOverlay) closeModal(); });
+modalSave.addEventListener('click', saveModalPayment);
+[modalCash, modalPaybill, modalBank].forEach(inp => inp.addEventListener('input', updateModalTotal));
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeModal(); });
 
 // ─── Apply contributions & download ──────────────────────────────────────────
 function applyContributions() {
@@ -478,7 +520,7 @@ function applyContributions() {
   const ref = sheet['!ref']!;
   const range = XLSX.utils.decode_range(ref);
 
-  // Build payColIdx for Cash, Paybill, Bank, RiskFund
+  // Build payColIdx from header row
   const payColIdx: Partial<Record<PaymentCol, number>> = {};
   for (let c = range.s.c; c <= range.e.c; c++) {
     const cell = sheet[XLSX.utils.encode_cell({ r: 0, c })];
@@ -487,73 +529,64 @@ function applyContributions() {
     if (PAYMENT_COLS.includes(hdr)) payColIdx[hdr] = c;
   }
 
-  const missing = PAYMENT_COLS.filter(p => payColIdx[p] === undefined);
-  if (missing.length > 0) {
-    alert(`Warning: The following columns were not found in your sheet and will be skipped: ${missing.join(', ')}`);
+  const missingCols = PAYMENT_COLS.filter(p => payColIdx[p] === undefined);
+  if (missingCols.length > 0) {
+    alert(`Note: Columns not found and will be skipped: ${missingCols.join(', ')}`);
   }
 
-  // Write each row's values
   let writes = 0;
   let riskFundWrites = 0;
 
-  memberTableBody.querySelectorAll<HTMLTableRowElement>('tr').forEach(tr => {
-    const rowIdx = parseInt(tr.dataset.rowIdx!, 10);
-    const { cash, paybill, bank } = getRowInputs(tr);
+  for (const [rowIdx, payment] of paymentMap) {
+    const { cash, paybill, bank } = payment;
     const sum = cash + paybill + bank;
 
-    const vals: Record<Exclude<PaymentCol, 'RiskFund'>, number> = { Cash: cash, Paybill: paybill, Bank: bank };
-
-    // 1. Write Cash/Paybill/Bank
+    // Write Cash / Paybill / Bank
+    const vals: Record<'Cash' | 'Paybill' | 'Bank', number> = { Cash: cash, Paybill: paybill, Bank: bank };
     for (const col of ['Cash', 'Paybill', 'Bank'] as const) {
       const cIdx = payColIdx[col];
       if (cIdx === undefined) continue;
       const addr = XLSX.utils.encode_cell({ r: rowIdx, c: cIdx });
-      const v = vals[col];
-      if (v > 0) {
-        sheet[addr] = { t: 'n', v };
-        writes++;
-      } else {
-        // If user left blank (0), preserve existing value or write 0
-        if (!sheet[addr]) {
-          sheet[addr] = { t: 'n', v: 0 };
-        }
-      }
+      sheet[addr] = { t: 'n', v: vals[col] };
+      if (vals[col] > 0) writes++;
     }
 
-    // 2. Autonomous RiskFund
+    // Auto RiskFund
     if (sum > 0) {
       const rfIdx = payColIdx['RiskFund'];
       if (rfIdx !== undefined) {
-        const rfAddr = XLSX.utils.encode_cell({ r: rowIdx, c: rfIdx });
-        sheet[rfAddr] = { t: 'n', v: 50 };
+        sheet[XLSX.utils.encode_cell({ r: rowIdx, c: rfIdx })] = { t: 'n', v: 50 };
         riskFundWrites++;
       }
     }
-  });
+  }
 
-  // Serialise and download
+  // Write zeros for unpaid members (to clear any stale data)
+  for (const m of memberRows) {
+    if (!paymentMap.has(m.rowIdx)) {
+      for (const col of ['Cash', 'Paybill', 'Bank'] as const) {
+        const cIdx = payColIdx[col];
+        if (cIdx === undefined) continue;
+        const addr = XLSX.utils.encode_cell({ r: m.rowIdx, c: cIdx });
+        if (!sheet[addr]) sheet[addr] = { t: 'n', v: 0 };
+      }
+    }
+  }
+
   const buf = XLSX.write(processedWorkbook, { bookType: 'xlsx', type: 'buffer' }) as ArrayBuffer;
-  const blob = new Blob([buf], {
-    type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-  });
+  const blob = new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
-  a.href = url;
-  a.download = outputName;
-  a.click();
+  a.href = url; a.download = outputName; a.click();
   setTimeout(() => URL.revokeObjectURL(url), 5000);
 
-  // Mark step 3 done in indicator
   setStepActive(3);
   step3Ind.classList.remove('active');
   step3Ind.classList.add('done');
 
-  console.log(`Applied ${writes} contribution value(s) and auto-filled ${riskFundWrites} RiskFund(s).`);
+  console.log(`Written: ${writes} payment value(s), ${riskFundWrites} RiskFund(s).`);
 }
 
 // ─── Event wiring ─────────────────────────────────────────────────────────────
-processBtn.addEventListener('click', () => {
-  if (selectedFile) processFile(selectedFile);
-});
-
+processBtn.addEventListener('click', () => { if (selectedFile) processFile(selectedFile); });
 applyBtn.addEventListener('click', applyContributions);
