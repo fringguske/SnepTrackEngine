@@ -6,7 +6,7 @@ const FORMULA_COLUMNS: string[] = [
   'Total RePaid', 'MonthlyShare', 'TotalAdvance', 'Shares C/F', 'Loans C/F', 'TotalCash',
 ];
 
-const PAYMENT_COLS = ['Cash', 'Paybill', 'Bank', 'LoanRepayment', 'AdvanceRepayment'] as const;
+const PAYMENT_COLS = ['Cash', 'Paybill', 'Bank', 'LoanRepayment', 'AdvanceRepayment', 'RiskFund'] as const;
 type PaymentCol = typeof PAYMENT_COLS[number];
 
 // ─── DOM refs — Step 1 ─────────────────────────────────────────────────────────
@@ -58,6 +58,11 @@ const popupAdvInterest = document.getElementById('popupAdvInterest')! as HTMLSpa
 const popupMShare = document.getElementById('popupMShare')! as HTMLSpanElement;
 const popupLoanRepayment = document.getElementById('popupLoanRepayment')! as HTMLInputElement;
 const popupAdvRepayment = document.getElementById('popupAdvRepayment')! as HTMLInputElement;
+const popupRiskFund = document.getElementById('popupRiskFund')! as HTMLInputElement;
+const popupTotalCash = document.getElementById('popupTotalCash')! as HTMLSpanElement;
+const popupTotalAdvance = document.getElementById('popupTotalAdvance')! as HTMLSpanElement;
+const popupTotalRepaid = document.getElementById('popupTotalRepaid')! as HTMLSpanElement;
+const popupMShareResult = document.getElementById('popupMShareResult')! as HTMLSpanElement;
 const popupClose = document.getElementById('popupClose')! as HTMLButtonElement;
 const popupDismiss = document.getElementById('popupDismiss')! as HTMLButtonElement;
 
@@ -78,13 +83,23 @@ interface MemberRow {
   loanInterest: number;
   advanceBalance: number;
   advanceInterest: number;
-  monthlyShare: number;
+  monthlyShare: number;      // from Excel (for display)
   loanRepayment: number;
   advRepayment: number;
+  // Occasional fields from Excel
+  advInterestPaid: number;
+  advDeduction: number;
+  loanInterestPaid: number;
+  registrationFee: number;
+  passBook: number;
+  fine: number;
 }
 
-/** Live map of entered amounts so we don't lose them if we redraw or for totals */
-const paymentMap = new Map<number, { cash: number; paybill: number; bank: number; loanRepayment: number; advRepayment: number }>();
+/** Live map of entered amounts — includes riskFund per member */
+const paymentMap = new Map<number, {
+  cash: number; paybill: number; bank: number;
+  loanRepayment: number; advRepayment: number; riskFund: number;
+}>();
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 function formatBytes(bytes: number): string {
@@ -95,6 +110,38 @@ function formatBytes(bytes: number): string {
 
 function fmt(n: number): string {
   return n.toLocaleString('en-KE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+// ─── Live formula engine ─────────────────────────────────────────────────
+function calcLiveValues(m: MemberRow) {
+  const pay = paymentMap.get(m.rowIdx);
+  if (!pay) return;
+
+  const { cash, paybill, bank, loanRepayment, advRepayment, riskFund } = pay;
+
+  // Step 1: TotalCash
+  const totalCash = cash + paybill + bank;
+
+  // Step 2: TotalAdvance = AdvanceRepayment + AdvanceInterestPaid - AdvanceDeduction
+  const totalAdvance = advRepayment + m.advInterestPaid - m.advDeduction;
+
+  // Step 3: TotalRepaid = TotalCash - (PassBook + RiskFund + TotalAdvance + Fine)
+  const totalRepaid = totalCash - (m.passBook + riskFund + totalAdvance + m.fine);
+
+  // Step 4: MonthlyShare formula
+  const loanBase = loanRepayment + m.loanInterestPaid + m.registrationFee;
+  let monthlyShareCalc: number;
+  if (totalRepaid > loanBase) {
+    monthlyShareCalc = totalRepaid - loanBase;
+  } else {
+    monthlyShareCalc = totalRepaid - m.registrationFee;
+  }
+
+  // Update popup displays
+  popupTotalCash.textContent = totalCash >= 0 ? fmt(totalCash) : '—';
+  popupTotalAdvance.textContent = totalAdvance >= 0 ? fmt(totalAdvance) : '—';
+  popupTotalRepaid.textContent = fmt(totalRepaid);
+  popupMShareResult.textContent = fmt(monthlyShareCalc);
 }
 
 function log(msg: string, type: 'default' | 'success' | 'warn' | 'error' = 'default') {
@@ -339,10 +386,17 @@ async function processFile(file: File) {
         const loanRepayment = 0;
         const advRepayment = 0;
 
+        const advInterestPaid = getNum(colMap['AdvanceInterestPaid']);
+        const advDeduction = getNum(colMap['AdvanceDeduction']);
+        const loanInterestPaid = getNum(colMap['LoanInterestPaid']);
+        const registrationFee = getNum(colMap['RegistrationFee']);
+        const passBook = getNum(colMap['PassBook']);
+        const fine = getNum(colMap['Fine']);
+
         // The expected calculation uses constant 500 for share and 50 for risk fund.
         const expected = installment + loanInterest + advanceBalance + advanceInterest + 500 + 50;
 
-        collected.push({ memberNo, memberName, rowIdx: r, expected, principal, installment, loanBalance, loanInterest, advanceBalance, advanceInterest, monthlyShare, loanRepayment, advRepayment });
+        collected.push({ memberNo, memberName, rowIdx: r, expected, principal, installment, loanBalance, loanInterest, advanceBalance, advanceInterest, monthlyShare, loanRepayment, advRepayment, advInterestPaid, advDeduction, loanInterestPaid, registrationFee, passBook, fine });
       }
       log(`Loaded ${collected.length} member(s).`, 'success');
     }
@@ -375,7 +429,7 @@ function showContributionSection(members: MemberRow[]) {
   paymentMap.clear(); // Reset map on re-process
 
   members.forEach((m) => {
-    paymentMap.set(m.rowIdx, { cash: 0, paybill: 0, bank: 0, loanRepayment: 0, advRepayment: 0 }); // Init to 0
+    paymentMap.set(m.rowIdx, { cash: 0, paybill: 0, bank: 0, loanRepayment: 0, advRepayment: 0, riskFund: 50 }); // Init to 0, riskFund to 50
 
     const tr = document.createElement('tr');
     tr.dataset.rowIdx = String(m.rowIdx);
@@ -466,17 +520,30 @@ function openDetailPopup(m: MemberRow) {
   popupMShare.textContent = fmt(m.monthlyShare);
 
   const payData = paymentMap.get(m.rowIdx)!;
+  popupRiskFund.value = String(payData.riskFund);
   popupLoanRepayment.value = payData.loanRepayment ? payData.loanRepayment.toString() : '';
   popupAdvRepayment.value = payData.advRepayment ? payData.advRepayment.toString() : '';
 
+  popupRiskFund.oninput = () => {
+    let val = parseInt(popupRiskFund.value) || 0;
+    if (val > 50) { val = 50; popupRiskFund.value = '50'; }
+    payData.riskFund = val;
+    calcLiveValues(m);
+    autoSaveToSheet(m.rowIdx);
+  };
+
   popupLoanRepayment.oninput = () => {
     payData.loanRepayment = parseFloat(popupLoanRepayment.value) || 0;
+    calcLiveValues(m);
     autoSaveToSheet(m.rowIdx);
   };
   popupAdvRepayment.oninput = () => {
     payData.advRepayment = parseFloat(popupAdvRepayment.value) || 0;
+    calcLiveValues(m);
     autoSaveToSheet(m.rowIdx);
   };
+
+  calcLiveValues(m); // initial paint for computed popup rows
 
   detailOverlay.classList.remove('hidden');
   document.body.style.overflow = 'hidden'; // prevent scrolling behind popup
@@ -508,10 +575,11 @@ function autoSaveToSheet(rowIdx: number) {
   }
   const payment = paymentMap.get(rowIdx);
   if (!payment) return;
-  const { cash, paybill, bank, loanRepayment, advRepayment } = payment;
+  const { cash, paybill, bank, loanRepayment, advRepayment, riskFund } = payment;
   const vals: Record<PaymentCol, number> = {
     Cash: cash, Paybill: paybill, Bank: bank,
     LoanRepayment: loanRepayment, AdvanceRepayment: advRepayment,
+    RiskFund: riskFund
   };
   for (const col of PAYMENT_COLS) {
     const cIdx = colCache[col];
@@ -545,11 +613,12 @@ function applyContributions() {
   let writes = 0;
 
   for (const [rowIdx, payment] of paymentMap) {
-    const { cash, paybill, bank, loanRepayment, advRepayment } = payment;
+    const { cash, paybill, bank, loanRepayment, advRepayment, riskFund } = payment;
 
     const vals: Record<PaymentCol, number> = {
       Cash: cash, Paybill: paybill, Bank: bank,
-      LoanRepayment: loanRepayment, AdvanceRepayment: advRepayment
+      LoanRepayment: loanRepayment, AdvanceRepayment: advRepayment,
+      RiskFund: riskFund
     };
 
     for (const col of PAYMENT_COLS) {

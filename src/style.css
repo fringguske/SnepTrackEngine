@@ -1032,107 +1032,105 @@ body {
     -webkit-appearance: none;
   }
 
-  .popup-amt-inp:focus {
-    outline: none;
-    border-color: rgba(108, 99, 255, 0.55);
-    background: rgba(108, 99, 255, 0.08);
-  }
 
-  /* Dismiss button */
-  .popup-dismiss {
-    display: block;
-    width: calc(100% - 32px);
-    margin: 12px 16px;
-    background: linear-gradient(135deg, var(--primary), var(--primary-end));
-    color: white;
-    border: none;
-    border-radius: 10px;
-    padding: 10px;
-    font-family: inherit;
-    font-size: 0.88rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: opacity var(--transition), transform var(--transition);
-  }
+.popup-amt-inp:focus {
+  outline: none;
+  border-color: rgba(108, 99, 255, 0.55);
+  background: rgba(108, 99, 255, 0.08);
+}
 
-  .popup-dismiss:hover {
-    opacity: 0.9;
-    transform: translateY(-1px);
-  }
+/* Dismiss button */
+.popup-dismiss {
+  display: block;
+  width: calc(100% - 32px);
+  margin: 12px 16px;
+  background: linear-gradient(135deg, var(--primary), var(--primary-end));
+  color: white;
+  border: none;
+  border-radius: 10px;
+  padding: 10px;
+  font-family: inherit;
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity var(--transition), transform var(--transition);
+}
 
-  .popup-dismiss:active {
-    transform: translateY(0);
-  }
+.popup-dismiss:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
 
-  /* ── Utilities ── */
-  .hidden {
-    display: none !important;
-  }
+.popup-dismiss:active {
+  transform: translateY(0);
+}
 
-  /* ════════════════════════════════
-   RESPONSIVE: very small screens
-   ════════════════════════════════ */
-  @media (max-width: 400px) {
-    body {
-      padding: 16px 8px 50px;
-    }
+/* Live computed results block */
+.popup-computed {
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+  padding: 10px 14px 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
 
-    .contribution-card {
-      padding: 12px 8px;
-    }
+.popup-comp-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 2px;
+  border-radius: 6px;
+}
 
-    .contrib-table th {
-      font-size: 0.62rem;
-      padding: 7px 3px;
-    }
+.popup-comp-lbl {
+  font-size: 0.68rem;
+  color: var(--text-muted);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
 
-    .contrib-table td {
-      padding: 4px 3px;
-    }
+.popup-comp-val {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
 
-    .td-mno {
-      font-size: 0.74rem;
-    }
+.computed-highlight {
+  background: rgba(108, 99, 255, 0.1);
+  border: 1px solid rgba(108, 99, 255, 0.25);
+  padding: 6px 8px;
+  border-radius: 8px;
+  margin-top: 4px;
+}
 
-    .td-exp {
-      font-size: 0.72rem;
-    }
+.highlight-val {
+  color: #4ade80;
+  font-size: 0.95rem;
+  font-weight: 800;
+}
 
-    .th-mno {
-      width: 28%;
-    }
+/* -- Utilities -- */
+.hidden {
+  display: none !important;
+}
 
-    .th-exp {
-      width: 28%;
-    }
-
-    .th-pay {
-      width: calc((100% - 56%) / 3);
-    }
-
-    .td-mno {
-      padding-left: 2px !important;
-    }
-
-    .amt-inp {
-      font-size: 0.72rem;
-      padding: 4px 3px;
-    }
-
-    .contrib-table tfoot td {
-      font-size: 0.66rem;
-      padding: 6px 3px;
-    }
-
-    .popup-grid {
-      grid-template-columns: 1fr 1fr;
-    }
-
-    .popup-chip {
-      padding: 7px 9px;
-    }
-
-    .popup-chip-val {
-      font-size: 0.78rem;
-    }
-  }
+/* RESPONSIVE: very small screens */
+@media (max-width: 400px) {
+  body { padding: 16px 8px 50px; }
+  .contribution-card { padding: 12px 8px; }
+  .contrib-table th { font-size: 0.62rem; padding: 7px 3px; }
+  .contrib-table td { padding: 4px 3px; }
+  .td-mno { font-size: 0.74rem; }
+  .td-exp { font-size: 0.72rem; }
+  .th-mno { width: 28%; }
+  .th-exp { width: 28%; }
+  .th-pay { width: calc((100% - 56%) / 3); }
+  .td-mno { padding-left: 2px !important; }
+  .amt-inp { font-size: 0.72rem; padding: 4px 3px; }
+  .contrib-table tfoot td { font-size: 0.66rem; padding: 6px 3px; }
+  .popup-grid { grid-template-columns: 1fr 1fr; }
+  .popup-chip { padding: 7px 9px; }
+  .popup-chip-val { font-size: 0.78rem; }
+}

@@ -248,12 +248,36 @@
           <span class="popup-chip-val" id="popupMShare">—</span>
         </div>
         <div class="popup-chip">
+          <span class="popup-chip-lbl">Risk Fund (max 50)</span>
+          <input type="number" class="popup-amt-inp" id="popupRiskFund" placeholder="50" min="0" max="50" step="1" />
+        </div>
+        <div class="popup-chip">
           <span class="popup-chip-lbl">Loan Repayment</span>
           <input type="number" class="popup-amt-inp" id="popupLoanRepayment" placeholder="0" min="0" step="0.01" />
         </div>
         <div class="popup-chip">
           <span class="popup-chip-lbl">Adv. Repayment</span>
           <input type="number" class="popup-amt-inp" id="popupAdvRepayment" placeholder="0" min="0" step="0.01" />
+        </div>
+      </div>
+
+      <!-- Live computed results -->
+      <div class="popup-computed">
+        <div class="popup-comp-row">
+          <span class="popup-comp-lbl">Total Cash</span>
+          <span class="popup-comp-val" id="popupTotalCash">—</span>
+        </div>
+        <div class="popup-comp-row">
+          <span class="popup-comp-lbl">Total Advance</span>
+          <span class="popup-comp-val" id="popupTotalAdvance">—</span>
+        </div>
+        <div class="popup-comp-row">
+          <span class="popup-comp-lbl">Total Repaid</span>
+          <span class="popup-comp-val" id="popupTotalRepaid">—</span>
+        </div>
+        <div class="popup-comp-row computed-highlight">
+          <span class="popup-comp-lbl">Monthly Share ≈</span>
+          <span class="popup-comp-val highlight-val" id="popupMShareResult">—</span>
         </div>
       </div>
 
