@@ -381,7 +381,6 @@ function showContributionSection(members: MemberRow[]) {
     const tdExp = document.createElement('td');
     tdExp.className = 'td-exp';
     tdExp.textContent = fmt(m.expected);
-    tdExp.addEventListener('click', () => openDetailPopup(m));
 
     const createInputCol = (type: 'cash' | 'paybill' | 'bank') => {
       const td = document.createElement('td');

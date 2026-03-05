@@ -746,20 +746,15 @@ body {
   color: #7fffd4;
 }
 
-/* Expected cell — clickable */
+/* Expected cell */
 .td-exp {
   font-weight: 700;
   font-size: 0.78rem;
   color: #a5b4fc;
   font-variant-numeric: tabular-nums;
-  cursor: pointer;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-}
-
-.td-exp:hover {
-  color: #c4b5fd;
 }
 
 /* Amount inputs */
@@ -1079,6 +1074,27 @@ body {
 
   .td-exp {
     font-size: 0.72rem;
+  }
+
+  .th-idx,
+  .td-idx {
+    display: none;
+  }
+
+  .th-mno {
+    width: 25%;
+  }
+
+  .th-exp {
+    width: 25%;
+  }
+
+  .th-pay {
+    width: 16.6%;
+  }
+
+  .td-mno {
+    padding-left: 2px !important;
   }
 
   .amt-inp {
