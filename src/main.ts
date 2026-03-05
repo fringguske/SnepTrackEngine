@@ -374,7 +374,7 @@ function showContributionSection(members: MemberRow[]) {
   memberTableBody.innerHTML = '';
   paymentMap.clear(); // Reset map on re-process
 
-  members.forEach((m, i) => {
+  members.forEach((m) => {
     paymentMap.set(m.rowIdx, { cash: 0, paybill: 0, bank: 0, loanRepayment: 0, advRepayment: 0 }); // Init to 0
 
     const tr = document.createElement('tr');
