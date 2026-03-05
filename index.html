@@ -19,35 +19,32 @@
   </div>
 
   <main class="container">
-    <!-- ── Step indicator ── -->
+    <!-- Step indicator -->
     <div class="steps-bar">
       <div class="step active" id="step1Indicator">
-        <div class="step-circle">1</div>
-        <span class="step-label">Upload &amp; Fill</span>
+        <div class="step-circle">1</div><span class="step-label">Upload &amp; Fill</span>
       </div>
       <div class="step-connector"></div>
       <div class="step" id="step2Indicator">
-        <div class="step-circle">2</div>
-        <span class="step-label">Enter Contributions</span>
+        <div class="step-circle">2</div><span class="step-label">Contributions</span>
       </div>
       <div class="step-connector"></div>
       <div class="step" id="step3Indicator">
-        <div class="step-circle">3</div>
-        <span class="step-label">Download</span>
+        <div class="step-circle">3</div><span class="step-label">Download</span>
       </div>
     </div>
 
-    <!-- ── Header ── -->
+    <!-- Header -->
     <header class="header">
       <div class="logo">
-        <svg width="36" height="36" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <rect width="36" height="36" rx="10" fill="url(#logoGrad)" />
+        <svg width="32" height="32" viewBox="0 0 36 36" fill="none">
+          <rect width="36" height="36" rx="10" fill="url(#lg)" />
           <path d="M10 12h16M10 18h16M10 24h10" stroke="white" stroke-width="2.5" stroke-linecap="round" />
           <circle cx="27" cy="24" r="4" fill="white" opacity="0.9" />
           <path d="M25.5 24l1 1 2-2" stroke="#6C63FF" stroke-width="1.5" stroke-linecap="round"
             stroke-linejoin="round" />
           <defs>
-            <linearGradient id="logoGrad" x1="0" y1="0" x2="36" y2="36" gradientUnits="userSpaceOnUse">
+            <linearGradient id="lg" x1="0" y1="0" x2="36" y2="36" gradientUnits="userSpaceOnUse">
               <stop stop-color="#6C63FF" />
               <stop offset="1" stop-color="#3ECFCF" />
             </linearGradient>
@@ -58,35 +55,32 @@
       <p class="tagline">Fill formulas, enter member contributions, and export — all in one place</p>
     </header>
 
-    <!-- ═══════════════ STEP 1 — UPLOAD ═══════════════ -->
+    <!-- ═══ STEP 1 ═══ -->
     <section class="step-section" id="step1Section">
-      <!-- Upload Card -->
-      <div class="card upload-card" id="uploadCard">
+      <div class="card upload-card">
         <div class="drop-zone" id="dropZone">
           <div class="drop-icon">
-            <svg width="52" height="52" viewBox="0 0 52 52" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <circle cx="26" cy="26" r="26" fill="url(#dropGrad)" opacity="0.15" />
-              <path d="M26 34V18M26 18L20 24M26 18L32 24" stroke="url(#dropGrad)" stroke-width="2.5"
-                stroke-linecap="round" stroke-linejoin="round" />
-              <path d="M16 36h20" stroke="url(#dropGrad)" stroke-width="2.5" stroke-linecap="round" />
+            <svg width="44" height="44" viewBox="0 0 52 52" fill="none">
+              <circle cx="26" cy="26" r="26" fill="url(#dg)" opacity="0.15" />
+              <path d="M26 34V18M26 18L20 24M26 18L32 24" stroke="url(#dg)" stroke-width="2.5" stroke-linecap="round"
+                stroke-linejoin="round" />
+              <path d="M16 36h20" stroke="url(#dg)" stroke-width="2.5" stroke-linecap="round" />
               <defs>
-                <linearGradient id="dropGrad" x1="0" y1="0" x2="52" y2="52" gradientUnits="userSpaceOnUse">
+                <linearGradient id="dg" x1="0" y1="0" x2="52" y2="52" gradientUnits="userSpaceOnUse">
                   <stop stop-color="#6C63FF" />
                   <stop offset="1" stop-color="#3ECFCF" />
                 </linearGradient>
               </defs>
             </svg>
           </div>
-          <p class="drop-title">Drag &amp; drop your Excel file here</p>
-          <p class="drop-sub">or click to browse — <strong>.xlsx</strong> files only</p>
+          <p class="drop-title">Drag &amp; drop your Excel file</p>
+          <p class="drop-sub">or click to browse — <strong>.xlsx</strong> only</p>
           <input type="file" id="fileInput" accept=".xlsx,.xls" hidden />
           <button class="btn btn-outline" id="browseBtn">Browse File</button>
         </div>
-
-        <!-- File Selected State -->
         <div class="file-info hidden" id="fileInfo">
           <div class="file-icon">
-            <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+            <svg width="28" height="28" viewBox="0 0 32 32" fill="none">
               <rect width="32" height="32" rx="8" fill="#1E7E3E" opacity="0.2" />
               <path d="M8 4h12l8 8v20H8V4z" stroke="#21a355" stroke-width="1.5" />
               <path d="M20 4v8h8" stroke="#21a355" stroke-width="1.5" />
@@ -97,234 +91,170 @@
             <p class="file-name" id="fileName">file.xlsx</p>
             <p class="file-size" id="fileSize">0 KB</p>
           </div>
-          <button class="btn-icon" id="clearBtn" title="Remove file">
-            <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+          <button class="btn-icon" id="clearBtn" title="Remove">
+            <svg width="16" height="16" viewBox="0 0 18 18" fill="none">
               <path d="M3 3l12 12M15 3L3 15" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
             </svg>
           </button>
         </div>
       </div>
 
-      <!-- Columns Info Card -->
       <div class="card info-card">
         <h3 class="info-title">
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
             <circle cx="8" cy="8" r="7" stroke="#6C63FF" stroke-width="1.5" />
             <path d="M8 7v4M8 5v.5" stroke="#6C63FF" stroke-width="1.5" stroke-linecap="round" />
           </svg>
           Formula Columns to Fill
         </h3>
         <div class="columns-grid">
-          <span class="col-badge">Total RePaid</span>
-          <span class="col-badge">MonthlyShare</span>
-          <span class="col-badge">TotalAdvance</span>
-          <span class="col-badge">Shares C/F</span>
-          <span class="col-badge">Loans C/F</span>
-          <span class="col-badge">TotalCash</span>
+          <span class="col-badge">Total RePaid</span><span class="col-badge">MonthlyShare</span>
+          <span class="col-badge">TotalAdvance</span><span class="col-badge">Shares C/F</span>
+          <span class="col-badge">Loans C/F</span><span class="col-badge">TotalCash</span>
         </div>
-        <p class="info-note">Formulas in row 2 of each column will be copied down to the last occupied row.</p>
+        <p class="info-note">Formulas in row 2 are copied down to the last occupied row.</p>
       </div>
 
-      <!-- Process Button -->
       <button class="btn btn-primary" id="processBtn" disabled>
         <span class="btn-text">Process File</span>
         <span class="btn-spinner hidden" id="spinner">
-          <svg class="spin" width="20" height="20" viewBox="0 0 20 20">
+          <svg class="spin" width="18" height="18" viewBox="0 0 20 20">
             <circle cx="10" cy="10" r="8" stroke="rgba(255,255,255,0.3)" stroke-width="2.5" fill="none" />
             <path d="M10 2a8 8 0 0 1 8 8" stroke="white" stroke-width="2.5" fill="none" stroke-linecap="round" />
           </svg>
         </span>
       </button>
 
-      <!-- Status / Log -->
       <div class="log-card hidden" id="logCard">
-        <div class="log-header">
-          <span id="logIcon" class="log-icon">⏳</span>
-          <span id="logTitle" class="log-status">Processing…</span>
-        </div>
+        <div class="log-header"><span id="logIcon" class="log-icon">⏳</span><span id="logTitle"
+            class="log-status">Processing…</span></div>
         <ul class="log-list" id="logList"></ul>
       </div>
 
-      <!-- Formula Fill Success Banner -->
       <div class="formula-success-banner hidden" id="formulaBanner">
         <div class="banner-icon">✅</div>
         <div class="banner-body">
-          <p class="banner-title">Formulas filled successfully!</p>
-          <p class="banner-sub">Scroll down to record each member's payment.</p>
+          <p class="banner-title">Formulas filled!</p>
+          <p class="banner-sub">Scroll down to record member payments.</p>
         </div>
-        <svg class="banner-arrow" width="24" height="24" viewBox="0 0 24 24" fill="none">
+        <svg class="banner-arrow" width="20" height="20" viewBox="0 0 24 24" fill="none">
           <path d="M12 5v14M12 19l-5-5M12 19l5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round"
             stroke-linejoin="round" />
         </svg>
       </div>
     </section>
 
-    <!-- ═══════════════ STEP 2 — CONTRIBUTIONS ═══════════════ -->
+    <!-- ═══ STEP 2 ═══ -->
     <section class="step-section hidden" id="step2Section">
-      <div class="card contribution-card" id="contributionCard">
+      <div class="card contribution-card">
         <div class="contrib-header">
           <div>
-            <h2 class="contrib-title">
-              <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
-                <rect x="1" y="1" width="20" height="20" rx="5" stroke="url(#cg)" stroke-width="1.8" />
-                <path d="M6 11h10M11 6v10" stroke="url(#cg)" stroke-width="1.8" stroke-linecap="round" />
-                <defs>
-                  <linearGradient id="cg" x1="1" y1="1" x2="21" y2="21" gradientUnits="userSpaceOnUse">
-                    <stop stop-color="#6C63FF" />
-                    <stop offset="1" stop-color="#3ECFCF" />
-                  </linearGradient>
-                </defs>
-              </svg>
-              Member Contributions
-            </h2>
-            <p class="contrib-sub">Click any member row to record their Cash, Paybill, or Bank payment.</p>
+            <h2 class="contrib-title">Member Contributions</h2>
+            <p class="contrib-sub">Enter amounts (KES). Tap Member No. or Expected to view member details.</p>
           </div>
           <div class="contrib-summary hidden" id="contribSummary">
             <span id="memberCount">0</span> members
           </div>
         </div>
 
-        <!-- Progress bar -->
-        <div class="payment-progress hidden" id="paymentProgress">
-          <div class="progress-info">
-            <span id="progressLabel">0 / 0 recorded</span>
-            <span id="progressPct">0%</span>
-          </div>
-          <div class="progress-bar-track">
-            <div class="progress-bar-fill" id="progressFill"></div>
-          </div>
-        </div>
-
-        <!-- Scrollable table wrapper -->
+        <!-- Compact table — fits mobile without horizontal scroll -->
         <div class="table-wrapper">
           <table class="contrib-table">
             <thead>
               <tr>
-                <th class="col-index">#</th>
-                <th class="col-memberno">Member No.</th>
-                <th class="col-expected">Expected (KES)</th>
-                <th class="col-detail">Principal</th>
-                <th class="col-detail">Installment</th>
-                <th class="col-detail">Adv. Balance</th>
-                <th class="col-detail">Adv. Interest</th>
-                <th class="col-status">Status</th>
+                <th class="th-idx">#</th>
+                <th class="th-mno">Member No.</th>
+                <th class="th-exp">Expected</th>
+                <th class="th-pay"><span class="ch-dot cash-dot"></span>Cash</th>
+                <th class="th-pay"><span class="ch-dot pay-dot"></span>Paybill</th>
+                <th class="th-pay"><span class="ch-dot bank-dot"></span>Bank</th>
               </tr>
             </thead>
             <tbody id="memberTableBody"></tbody>
             <tfoot>
-              <tr class="totals-row" id="totalsRow">
+              <tr class="totals-row">
                 <td colspan="2" class="totals-label">Totals</td>
-                <td class="col-expected" id="colTotalExpected">—</td>
-                <td colspan="5" class="totals-label" id="colPaidCount">—</td>
+                <td class="tf-exp" id="colTotalExpected">—</td>
+                <td class="tf-pay" id="colTotalCash">—</td>
+                <td class="tf-pay" id="colTotalPaybill">—</td>
+                <td class="tf-pay" id="colTotalBank">—</td>
               </tr>
             </tfoot>
           </table>
         </div>
 
-        <!-- Apply + Download button -->
         <button class="btn btn-success" id="applyBtn">
-          <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+          <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
             <path d="M10 3v10M10 13l-4-4M10 13l4-4" stroke="white" stroke-width="2" stroke-linecap="round"
               stroke-linejoin="round" />
             <path d="M3 16h14" stroke="white" stroke-width="2" stroke-linecap="round" />
           </svg>
-          Apply Contributions &amp; Download
+          Apply &amp; Download
         </button>
-
-        <!-- Start over -->
-        <button class="btn btn-ghost" id="startOverBtn">
-          ↩ Start over with a different file
-        </button>
+        <button class="btn btn-ghost" id="startOverBtn">↩ Start over</button>
       </div>
     </section>
-
   </main>
 
-  <!-- ═══════════════ PAYMENT MODAL ═══════════════ -->
-  <div class="modal-overlay hidden" id="paymentModalOverlay">
-    <div class="payment-modal" id="paymentModal" role="dialog" aria-modal="true">
-      <!-- Modal Header -->
-      <div class="modal-header">
-        <div class="modal-header-left">
-          <div class="modal-avatar" id="modalAvatar">M</div>
-          <div>
-            <p class="modal-member-label">Recording payment for</p>
-            <p class="modal-member-no" id="modalMemberNo">—</p>
-          </div>
+  <!-- ═══ MEMBER DETAIL POPUP ═══ -->
+  <div class="popup-overlay hidden" id="detailOverlay">
+    <div class="detail-popup" id="detailPopup">
+      <div class="popup-header">
+        <div class="popup-avatar" id="popupAvatar">M</div>
+        <div class="popup-title-block">
+          <p class="popup-lbl">Member Details</p>
+          <p class="popup-mno" id="popupMemberNo">—</p>
         </div>
-        <button class="modal-close" id="modalClose" aria-label="Close">
-          <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+        <button class="popup-close" id="popupClose">
+          <svg width="16" height="16" viewBox="0 0 18 18" fill="none">
             <path d="M3 3l12 12M15 3L3 15" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
           </svg>
         </button>
       </div>
 
-      <!-- Breakdown strip -->
-      <div class="modal-breakdown">
-        <div class="breakdown-chip">
-          <span class="breakdown-lbl">Expected</span>
-          <span class="breakdown-val expected-val" id="modalExpected">—</span>
+      <!-- Expected chip -->
+      <div class="popup-expected-row">
+        <span class="popup-exp-lbl">Total Expected</span>
+        <span class="popup-exp-val" id="popupExpected">—</span>
+      </div>
+
+      <!-- Breakdown grid -->
+      <div class="popup-grid">
+        <div class="popup-chip">
+          <span class="popup-chip-lbl">Principal Loan</span>
+          <span class="popup-chip-val" id="popupPrincipal">—</span>
         </div>
-        <div class="breakdown-chip">
-          <span class="breakdown-lbl">Principal</span>
-          <span class="breakdown-val" id="modalPrincipal">—</span>
+        <div class="popup-chip">
+          <span class="popup-chip-lbl">Installment</span>
+          <span class="popup-chip-val" id="popupInstallment">—</span>
         </div>
-        <div class="breakdown-chip">
-          <span class="breakdown-lbl">Installment</span>
-          <span class="breakdown-val" id="modalInstallment">—</span>
+        <div class="popup-chip">
+          <span class="popup-chip-lbl">Loan Balance</span>
+          <span class="popup-chip-val" id="popupLoanBalance">—</span>
         </div>
-        <div class="breakdown-chip">
-          <span class="breakdown-lbl">Adv. Balance</span>
-          <span class="breakdown-val" id="modalAdvBalance">—</span>
+        <div class="popup-chip">
+          <span class="popup-chip-lbl">Reducing Int. (1.5%)</span>
+          <span class="popup-chip-val interest-val" id="popupLoanInterest">—</span>
         </div>
-        <div class="breakdown-chip">
-          <span class="breakdown-lbl">Adv. Interest</span>
-          <span class="breakdown-val" id="modalAdvInterest">—</span>
+        <div class="popup-chip">
+          <span class="popup-chip-lbl">Advance Balance</span>
+          <span class="popup-chip-val" id="popupAdvBalance">—</span>
         </div>
-        <div class="breakdown-chip">
-          <span class="breakdown-lbl">M. Share</span>
-          <span class="breakdown-val" id="modalMShare">—</span>
+        <div class="popup-chip">
+          <span class="popup-chip-lbl">Adv. Interest (10%)</span>
+          <span class="popup-chip-val interest-val" id="popupAdvInterest">—</span>
         </div>
-        <div class="breakdown-chip">
-          <span class="breakdown-lbl">Risk Fund</span>
-          <span class="breakdown-val" id="modalRiskFund">—</span>
+        <div class="popup-chip">
+          <span class="popup-chip-lbl">Monthly Share</span>
+          <span class="popup-chip-val" id="popupMShare">—</span>
+        </div>
+        <div class="popup-chip">
+          <span class="popup-chip-lbl">Risk Fund</span>
+          <span class="popup-chip-val" id="popupRiskFund">—</span>
         </div>
       </div>
 
-      <!-- Payment inputs -->
-      <div class="modal-inputs">
-        <div class="modal-input-group">
-          <label class="modal-lbl cash-lbl">
-            <span class="lbl-dot cash"></span> Cash (KES)
-          </label>
-          <input type="number" id="modalCash" class="modal-input cash-inp" min="0" step="0.01" placeholder="0.00" />
-        </div>
-        <div class="modal-input-group">
-          <label class="modal-lbl paybill-lbl">
-            <span class="lbl-dot paybill"></span> Paybill (KES)
-          </label>
-          <input type="number" id="modalPaybill" class="modal-input paybill-inp" min="0" step="0.01"
-            placeholder="0.00" />
-        </div>
-        <div class="modal-input-group">
-          <label class="modal-lbl bank-lbl">
-            <span class="lbl-dot bank"></span> Bank (KES)
-          </label>
-          <input type="number" id="modalBank" class="modal-input bank-inp" min="0" step="0.01" placeholder="0.00" />
-        </div>
-      </div>
-
-      <!-- Live total -->
-      <div class="modal-total-row">
-        <span class="modal-total-lbl">Total Being Recorded</span>
-        <span class="modal-total-val" id="modalTotal">KES 0.00</span>
-      </div>
-
-      <!-- Buttons -->
-      <div class="modal-actions">
-        <button class="btn btn-ghost modal-cancel" id="modalCancel">Cancel</button>
-        <button class="btn btn-primary modal-save" id="modalSave">Save Payment</button>
-      </div>
+      <button class="popup-dismiss" id="popupDismiss">Close</button>
     </div>
   </div>
 

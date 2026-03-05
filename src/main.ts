@@ -33,36 +33,31 @@ const applyBtn = document.getElementById('applyBtn')! as HTMLButtonElement;
 const startOverBtn = document.getElementById('startOverBtn')! as HTMLButtonElement;
 const contribSummary = document.getElementById('contribSummary')! as HTMLDivElement;
 const memberCountEl = document.getElementById('memberCount')! as HTMLSpanElement;
-const paymentProgress = document.getElementById('paymentProgress')! as HTMLDivElement;
-const progressLabel = document.getElementById('progressLabel')! as HTMLSpanElement;
-const progressPct = document.getElementById('progressPct')! as HTMLSpanElement;
-const progressFill = document.getElementById('progressFill')! as HTMLDivElement;
 const colTotalExpected = document.getElementById('colTotalExpected')!;
-const colPaidCount = document.getElementById('colPaidCount')!;
+const colTotalCash = document.getElementById('colTotalCash')!;
+const colTotalPaybill = document.getElementById('colTotalPaybill')!;
+const colTotalBank = document.getElementById('colTotalBank')!;
 
 // Step indicator elements
 const step1Ind = document.getElementById('step1Indicator')! as HTMLDivElement;
 const step2Ind = document.getElementById('step2Indicator')! as HTMLDivElement;
 const step3Ind = document.getElementById('step3Indicator')! as HTMLDivElement;
 
-// ─── Modal refs ───────────────────────────────────────────────────────────────
-const modalOverlay = document.getElementById('paymentModalOverlay')! as HTMLDivElement;
-const modalMemberNo = document.getElementById('modalMemberNo')! as HTMLParagraphElement;
-const modalAvatar = document.getElementById('modalAvatar')! as HTMLDivElement;
-const modalExpected = document.getElementById('modalExpected')! as HTMLSpanElement;
-const modalPrincipal = document.getElementById('modalPrincipal')! as HTMLSpanElement;
-const modalInstallment = document.getElementById('modalInstallment')! as HTMLSpanElement;
-const modalAdvBalance = document.getElementById('modalAdvBalance')! as HTMLSpanElement;
-const modalAdvInterest = document.getElementById('modalAdvInterest')! as HTMLSpanElement;
-const modalMShare = document.getElementById('modalMShare')! as HTMLSpanElement;
-const modalRiskFund = document.getElementById('modalRiskFund')! as HTMLSpanElement;
-const modalCash = document.getElementById('modalCash')! as HTMLInputElement;
-const modalPaybill = document.getElementById('modalPaybill')! as HTMLInputElement;
-const modalBank = document.getElementById('modalBank')! as HTMLInputElement;
-const modalTotal = document.getElementById('modalTotal')! as HTMLSpanElement;
-const modalClose = document.getElementById('modalClose')! as HTMLButtonElement;
-const modalCancel = document.getElementById('modalCancel')! as HTMLButtonElement;
-const modalSave = document.getElementById('modalSave')! as HTMLButtonElement;
+// ─── Detail Popup refs ────────────────────────────────────────────────────────
+const detailOverlay = document.getElementById('detailOverlay')! as HTMLDivElement;
+const popupAvatar = document.getElementById('popupAvatar')! as HTMLDivElement;
+const popupMemberNo = document.getElementById('popupMemberNo')! as HTMLParagraphElement;
+const popupExpected = document.getElementById('popupExpected')! as HTMLSpanElement;
+const popupPrincipal = document.getElementById('popupPrincipal')! as HTMLSpanElement;
+const popupInstallment = document.getElementById('popupInstallment')! as HTMLSpanElement;
+const popupLoanBalance = document.getElementById('popupLoanBalance')! as HTMLSpanElement;
+const popupLoanInterest = document.getElementById('popupLoanInterest')! as HTMLSpanElement;
+const popupAdvBalance = document.getElementById('popupAdvBalance')! as HTMLSpanElement;
+const popupAdvInterest = document.getElementById('popupAdvInterest')! as HTMLSpanElement;
+const popupMShare = document.getElementById('popupMShare')! as HTMLSpanElement;
+const popupRiskFund = document.getElementById('popupRiskFund')! as HTMLSpanElement;
+const popupClose = document.getElementById('popupClose')! as HTMLButtonElement;
+const popupDismiss = document.getElementById('popupDismiss')! as HTMLButtonElement;
 
 // ─── State ────────────────────────────────────────────────────────────────────
 let selectedFile: File | null = null;
@@ -84,13 +79,8 @@ interface MemberRow {
   riskFund: number;
 }
 
-let memberRows: MemberRow[] = [];
-
-/** Stores recorded payment per sheet rowIdx */
+/** Live map of entered amounts so we don't lose them if we redraw or for totals */
 const paymentMap = new Map<number, { cash: number; paybill: number; bank: number }>();
-
-/** rowIdx of the member whose modal is currently open */
-let activeModalRowIdx: number | null = null;
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 function formatBytes(bytes: number): string {
@@ -269,7 +259,6 @@ async function processFile(file: File) {
     log(`Found ${found.length} formula column(s): ${found.join(', ')}`, 'success');
     if (missing.length > 0) log(`Skipped (not found): ${missing.join(', ')}`, 'warn');
 
-    // Detect last occupied row
     let lastRow = 1;
     for (let r = 1; r <= range.e.r; r++) {
       for (let c = range.s.c; c <= range.e.c; c++) {
@@ -374,143 +363,114 @@ async function processFile(file: File) {
 // ─── Build contribution table ─────────────────────────────────────────────────
 function showContributionSection(members: MemberRow[]) {
   memberTableBody.innerHTML = '';
+  paymentMap.clear(); // Reset map on re-process
 
   members.forEach((m, i) => {
-    const tr = buildMemberRow(m, i);
-    memberTableBody.appendChild(tr);
+    paymentMap.set(m.rowIdx, { cash: 0, paybill: 0, bank: 0 }); // Init to 0
 
-    // Row click → open modal
-    tr.addEventListener('click', () => openModal(m));
+    const tr = document.createElement('tr');
+    tr.dataset.rowIdx = String(m.rowIdx);
+
+    const tdIdx = document.createElement('td');
+    tdIdx.className = 'td-idx';
+    tdIdx.textContent = String(i + 1);
+
+    const tdMno = document.createElement('td');
+    tdMno.className = 'td-mno';
+    tdMno.textContent = String(m.memberNo);
+    tdMno.addEventListener('click', () => openDetailPopup(m));
+
+    const tdExp = document.createElement('td');
+    tdExp.className = 'td-exp';
+    tdExp.textContent = fmt(m.expected);
+    tdExp.addEventListener('click', () => openDetailPopup(m));
+
+    const createInputCol = (type: 'cash' | 'paybill' | 'bank') => {
+      const td = document.createElement('td');
+      const input = document.createElement('input');
+      input.type = 'number';
+      input.min = '0';
+      input.step = '0.01';
+      input.className = `amt-inp ${type}-inp`;
+      input.placeholder = '0';
+      input.addEventListener('input', () => {
+        const val = parseFloat(input.value) || 0;
+        const pay = paymentMap.get(m.rowIdx)!;
+        if (type === 'cash') pay.cash = val;
+        if (type === 'paybill') pay.paybill = val;
+        if (type === 'bank') pay.bank = val;
+        updateFooterTotals();
+      });
+      td.appendChild(input);
+      return td;
+    };
+
+    tr.appendChild(tdIdx);
+    tr.appendChild(tdMno);
+    tr.appendChild(tdExp);
+    tr.appendChild(createInputCol('cash'));
+    tr.appendChild(createInputCol('paybill'));
+    tr.appendChild(createInputCol('bank'));
+
+    memberTableBody.appendChild(tr);
   });
 
-  // Footer total
   const sumExpected = members.reduce((s, m) => s + m.expected, 0);
-  colTotalExpected.textContent = sumExpected > 0 ? `KES ${fmt(sumExpected)}` : '—';
-  colPaidCount.textContent = `0 / ${members.length} paid`;
+  colTotalExpected.textContent = sumExpected > 0 ? fmt(sumExpected) : '—';
 
   memberCountEl.textContent = String(members.length);
   contribSummary.classList.remove('hidden');
-  paymentProgress.classList.remove('hidden');
-  updateProgress();
+
+  updateFooterTotals();
 
   step2Section.classList.remove('hidden');
   setTimeout(() => step2Section.scrollIntoView({ behavior: 'smooth', block: 'start' }), 150);
 }
 
-function buildMemberRow(m: MemberRow, i: number): HTMLTableRowElement {
-  const tr = document.createElement('tr');
-  tr.dataset.rowIdx = String(m.rowIdx);
-  const paid = paymentMap.has(m.rowIdx);
-  if (paid) tr.classList.add('paid-row');
+function updateFooterTotals() {
+  let cashTotal = 0;
+  let paybillTotal = 0;
+  let bankTotal = 0;
 
-  const status = paid
-    ? `<span class="status-badge paid">✓ Paid</span>`
-    : `<span class="status-badge unpaid">Pending</span>`;
+  for (const pay of paymentMap.values()) {
+    cashTotal += pay.cash;
+    paybillTotal += pay.paybill;
+    bankTotal += pay.bank;
+  }
 
-  tr.innerHTML = `
-    <td class="row-index">${i + 1}</td>
-    <td class="member-no-cell">${m.memberNo}</td>
-    <td class="expected-cell">KES ${fmt(m.expected)}</td>
-    <td class="detail-cell">${m.principal > 0 ? fmt(m.principal) : '—'}</td>
-    <td class="detail-cell">${m.installment > 0 ? fmt(m.installment) : '—'}</td>
-    <td class="detail-cell">${m.advanceBalance > 0 ? fmt(m.advanceBalance) : '—'}</td>
-    <td class="detail-cell">${m.advanceInterest > 0 ? fmt(m.advanceInterest) : '—'}</td>
-    <td class="col-status">${status}</td>
-  `;
-  return tr;
+  colTotalCash.textContent = cashTotal > 0 ? fmt(cashTotal) : '—';
+  colTotalPaybill.textContent = paybillTotal > 0 ? fmt(paybillTotal) : '—';
+  colTotalBank.textContent = bankTotal > 0 ? fmt(bankTotal) : '—';
 }
 
-function refreshRow(m: MemberRow, i: number) {
-  const tr = memberTableBody.querySelector<HTMLTableRowElement>(`tr[data-row-idx="${m.rowIdx}"]`);
-  if (!tr) return;
-  const fresh = buildMemberRow(m, i);
-  fresh.addEventListener('click', () => openModal(m));
-  memberTableBody.replaceChild(fresh, tr);
-}
-
-function updateProgress() {
-  const total = memberRows.length;
-  const paid = paymentMap.size;
-  const pct = total > 0 ? Math.round((paid / total) * 100) : 0;
-  progressLabel.textContent = `${paid} / ${total} recorded`;
-  progressPct.textContent = `${pct}%`;
-  progressFill.style.width = `${pct}%`;
-  colPaidCount.textContent = `${paid} of ${total} members paid`;
-}
-
-// ─── Payment Modal ────────────────────────────────────────────────────────────
-function openModal(m: MemberRow) {
-  activeModalRowIdx = m.rowIdx;
-
-  // Header
+// ─── Detail Popup ─────────────────────────────────────────────────────────────
+function openDetailPopup(m: MemberRow) {
   const initials = String(m.memberNo).slice(0, 2).toUpperCase();
-  modalAvatar.textContent = initials;
-  modalMemberNo.textContent = String(m.memberNo);
+  popupAvatar.textContent = initials;
+  popupMemberNo.textContent = String(m.memberNo);
 
-  // Breakdown
-  modalExpected.textContent = `KES ${fmt(m.expected)}`;
-  modalPrincipal.textContent = m.principal > 0 ? fmt(m.principal) : '—';
-  modalInstallment.textContent = m.installment > 0 ? fmt(m.installment) : '—';
-  modalAdvBalance.textContent = m.advanceBalance > 0 ? fmt(m.advanceBalance) : '—';
-  modalAdvInterest.textContent = m.advanceInterest > 0 ? fmt(m.advanceInterest) : '—';
-  modalMShare.textContent = fmt(m.monthlyShare);
-  modalRiskFund.textContent = fmt(m.riskFund);
+  popupExpected.textContent = `KES ${fmt(m.expected)}`;
+  popupPrincipal.textContent = m.principal > 0 ? fmt(m.principal) : '—';
+  popupInstallment.textContent = m.installment > 0 ? fmt(m.installment) : '—';
+  popupLoanBalance.textContent = m.loanBalance > 0 ? fmt(m.loanBalance) : '—';
+  popupLoanInterest.textContent = m.loanInterest > 0 ? fmt(m.loanInterest) : '—';
+  popupAdvBalance.textContent = m.advanceBalance > 0 ? fmt(m.advanceBalance) : '—';
+  popupAdvInterest.textContent = m.advanceInterest > 0 ? fmt(m.advanceInterest) : '—';
+  popupMShare.textContent = fmt(m.monthlyShare);
+  popupRiskFund.textContent = fmt(m.riskFund);
 
-  // Pre-fill existing values
-  const existing = paymentMap.get(m.rowIdx);
-  modalCash.value = existing?.cash ? String(existing.cash) : '';
-  modalPaybill.value = existing?.paybill ? String(existing.paybill) : '';
-  modalBank.value = existing?.bank ? String(existing.bank) : '';
-  updateModalTotal();
-
-  modalOverlay.classList.remove('hidden');
-  document.body.style.overflow = 'hidden';
-  modalCash.focus();
+  detailOverlay.classList.remove('hidden');
+  document.body.style.overflow = 'hidden'; // prevent scrolling behind popup
 }
 
-function closeModal() {
-  activeModalRowIdx = null;
-  modalOverlay.classList.add('hidden');
+function closeDetailPopup() {
+  detailOverlay.classList.add('hidden');
   document.body.style.overflow = '';
 }
 
-function updateModalTotal() {
-  const cash = parseFloat(modalCash.value) || 0;
-  const paybill = parseFloat(modalPaybill.value) || 0;
-  const bank = parseFloat(modalBank.value) || 0;
-  const total = cash + paybill + bank;
-  modalTotal.textContent = `KES ${fmt(total)}`;
-  modalTotal.classList.toggle('has-value', total > 0);
-}
-
-function saveModalPayment() {
-  if (activeModalRowIdx === null) return;
-  const cash = parseFloat(modalCash.value) || 0;
-  const paybill = parseFloat(modalPaybill.value) || 0;
-  const bank = parseFloat(modalBank.value) || 0;
-
-  if (cash === 0 && paybill === 0 && bank === 0) {
-    // If all zeros, remove from map (clear payment)
-    paymentMap.delete(activeModalRowIdx);
-  } else {
-    paymentMap.set(activeModalRowIdx, { cash, paybill, bank });
-  }
-
-  // Refresh that row in the table
-  const rowIdx = activeModalRowIdx;
-  const memberIdx = memberRows.findIndex(m => m.rowIdx === rowIdx);
-  if (memberIdx !== -1) refreshRow(memberRows[memberIdx], memberIdx);
-
-  updateProgress();
-  closeModal();
-}
-
-// Modal event wiring
-[modalClose, modalCancel].forEach(btn => btn.addEventListener('click', closeModal));
-modalOverlay.addEventListener('click', (e) => { if (e.target === modalOverlay) closeModal(); });
-modalSave.addEventListener('click', saveModalPayment);
-[modalCash, modalPaybill, modalBank].forEach(inp => inp.addEventListener('input', updateModalTotal));
-document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeModal(); });
+[popupClose, popupDismiss].forEach(btn => btn.addEventListener('click', closeDetailPopup));
+detailOverlay.addEventListener('click', (e) => { if (e.target === detailOverlay) closeDetailPopup(); });
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeDetailPopup(); });
 
 // ─── Apply contributions & download ──────────────────────────────────────────
 function applyContributions() {
@@ -520,7 +480,6 @@ function applyContributions() {
   const ref = sheet['!ref']!;
   const range = XLSX.utils.decode_range(ref);
 
-  // Build payColIdx from header row
   const payColIdx: Partial<Record<PaymentCol, number>> = {};
   for (let c = range.s.c; c <= range.e.c; c++) {
     const cell = sheet[XLSX.utils.encode_cell({ r: 0, c })];
@@ -541,34 +500,20 @@ function applyContributions() {
     const { cash, paybill, bank } = payment;
     const sum = cash + paybill + bank;
 
-    // Write Cash / Paybill / Bank
     const vals: Record<'Cash' | 'Paybill' | 'Bank', number> = { Cash: cash, Paybill: paybill, Bank: bank };
     for (const col of ['Cash', 'Paybill', 'Bank'] as const) {
       const cIdx = payColIdx[col];
       if (cIdx === undefined) continue;
       const addr = XLSX.utils.encode_cell({ r: rowIdx, c: cIdx });
-      sheet[addr] = { t: 'n', v: vals[col] };
+      sheet[addr] = { t: 'n', v: vals[col] || 0 }; // write 0 if blank/unpaid
       if (vals[col] > 0) writes++;
     }
 
-    // Auto RiskFund
     if (sum > 0) {
       const rfIdx = payColIdx['RiskFund'];
       if (rfIdx !== undefined) {
         sheet[XLSX.utils.encode_cell({ r: rowIdx, c: rfIdx })] = { t: 'n', v: 50 };
         riskFundWrites++;
-      }
-    }
-  }
-
-  // Write zeros for unpaid members (to clear any stale data)
-  for (const m of memberRows) {
-    if (!paymentMap.has(m.rowIdx)) {
-      for (const col of ['Cash', 'Paybill', 'Bank'] as const) {
-        const cIdx = payColIdx[col];
-        if (cIdx === undefined) continue;
-        const addr = XLSX.utils.encode_cell({ r: m.rowIdx, c: cIdx });
-        if (!sheet[addr]) sheet[addr] = { t: 'n', v: 0 };
       }
     }
   }
