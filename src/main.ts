@@ -195,7 +195,6 @@ function acceptFile(file: File) {
 function clearFile() {
   selectedFile = null;
   processedWorkbook = null;
-  memberRows = [];
   paymentMap.clear();
   fileInput.value = '';
   fileInfo.classList.add('hidden');
@@ -340,7 +339,6 @@ async function processFile(file: File) {
     processedWorkbook = workbook;
     processedSheetName = sheetName;
     outputName = `${file.name.replace(/\.xlsx?$/i, '')}_filled.xlsx`;
-    memberRows = collected;
     paymentMap.clear();
 
     logIcon.textContent = '✅';
