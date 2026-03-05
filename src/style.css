@@ -23,6 +23,8 @@
   --radius: 16px;
   --radius-sm: 10px;
   --shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  --sticky-bg: #1a1b2d;
+  --sticky-hover: #222338;
   --transition: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -728,8 +730,12 @@ body {
   vertical-align: middle;
 }
 
+.col-index {
+  width: 40px;
+}
+
 .col-memberno {
-  width: 130px;
+  width: 110px;
 }
 
 .col-amount {
@@ -746,6 +752,11 @@ body {
   color: var(--text-muted);
   font-weight: 500;
   font-variant-numeric: tabular-nums;
+  position: sticky;
+  left: 0;
+  background: var(--sticky-bg);
+  z-index: 1;
+  transition: background var(--transition);
 }
 
 .member-no-cell {
@@ -753,6 +764,32 @@ body {
   font-size: 0.88rem;
   color: var(--text);
   font-variant-numeric: tabular-nums;
+  position: sticky;
+  left: 40px;
+  background: var(--sticky-bg);
+  z-index: 1;
+  box-shadow: 3px 0 8px rgba(0, 0, 0, 0.15);
+  transition: background var(--transition);
+}
+
+.contrib-table thead th.col-index {
+  position: sticky;
+  left: 0;
+  background: #141428;
+  z-index: 3;
+}
+
+.contrib-table thead th.col-memberno {
+  position: sticky;
+  left: 40px;
+  background: #141428;
+  z-index: 3;
+  box-shadow: 3px 0 8px rgba(0, 0, 0, 0.15);
+}
+
+.contrib-table tbody tr:hover .row-index,
+.contrib-table tbody tr:hover .member-no-cell {
+  background: var(--sticky-hover);
 }
 
 .expected-cell {
@@ -864,4 +901,49 @@ body {
 /* ===== Utilities ===== */
 .hidden {
   display: none !important;
+}
+
+/* ===== Responsive Mobile Adjustments ===== */
+@media (max-width: 600px) {
+  .contrib-table th {
+    font-size: 0.7rem;
+    padding: 10px 8px;
+  }
+
+  .contrib-table td {
+    padding: 6px 8px;
+    font-size: 0.8rem;
+  }
+
+  .member-no-cell,
+  .expected-cell {
+    font-size: 0.8rem;
+  }
+
+  .row-total {
+    font-size: 0.75rem;
+  }
+
+  .amount-input {
+    font-size: 0.8rem;
+    padding: 6px 8px;
+  }
+
+  .contrib-table tfoot td {
+    font-size: 0.75rem;
+    padding: 8px;
+  }
+
+  .col-index {
+    width: 36px;
+  }
+
+  .col-memberno {
+    width: 90px;
+  }
+
+  .member-no-cell,
+  .contrib-table thead th.col-memberno {
+    left: 36px;
+  }
 }
