@@ -339,7 +339,8 @@ async function processFile(file: File) {
         const loanRepayment = 0;
         const advRepayment = 0;
 
-        const expected = installment + loanInterest + advanceBalance + advanceInterest + monthlyShare;
+        // The expected calculation uses constant 500 for share and 50 for risk fund.
+        const expected = installment + loanInterest + advanceBalance + advanceInterest + 500 + 50;
 
         collected.push({ memberNo, memberName, rowIdx: r, expected, principal, installment, loanBalance, loanInterest, advanceBalance, advanceInterest, monthlyShare, loanRepayment, advRepayment });
       }
