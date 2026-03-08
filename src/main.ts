@@ -667,3 +667,11 @@ applyBtn.addEventListener('click', applyContributions);
   processBtn.disabled = true;
   btnText.textContent = 'Process File';
 })();
+
+// ─── Warning before exit ───────────────────────────────────────────────────────
+window.addEventListener('beforeunload', (e) => {
+  if (selectedFile) {
+    e.preventDefault();
+    e.returnValue = ''; // Standard way to trigger the confirmation dialog
+  }
+});
