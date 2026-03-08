@@ -604,8 +604,7 @@ body {
    Target: all 6 columns fit on 360px+ screens
    ═══════════════════════════════════════ */
 .table-wrapper {
-  overflow-x: hidden;
-  /* No sideways scroll */
+  overflow-x: auto;
   border-radius: 8px;
   border: 1px solid var(--border);
   margin-bottom: 14px;
@@ -624,14 +623,18 @@ body {
 
 .contrib-table {
   width: 100%;
+  min-width: 500px;
   border-collapse: collapse;
   table-layout: fixed;
-  /* Fixed layout = columns don't overflow */
 }
 
 /* Column widths — 5 columns total (no index) */
 .th-mno {
   width: 26%;
+  position: sticky;
+  left: 0;
+  background: rgba(16, 17, 32, 0.98);
+  z-index: 3;
 }
 
 .th-exp {
@@ -735,6 +738,15 @@ body {
   overflow: hidden;
   text-overflow: ellipsis;
   text-decoration: underline dotted rgba(62, 207, 207, 0.35);
+  position: sticky;
+  left: 0;
+  background: var(--sticky-bg);
+  z-index: 1;
+  transition: background var(--transition);
+}
+
+.contrib-table tbody tr:hover .td-mno {
+  background: var(--sticky-hover);
 }
 
 .td-mno:hover {
@@ -770,6 +782,7 @@ body {
 .amt-inp::-webkit-outer-spin-button,
 .amt-inp::-webkit-inner-spin-button {
   -webkit-appearance: none;
+  appearance: none;
 }
 
 .amt-inp:focus {
@@ -806,6 +819,10 @@ body {
 
 .contrib-table tfoot td:first-child {
   padding-left: 6px;
+  position: sticky;
+  left: 0;
+  background: #17182b;
+  z-index: 1;
 }
 
 .totals-label {
@@ -999,38 +1016,40 @@ body {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
 
-  .popup-chip-val {
-    font-size: 0.85rem;
-    font-weight: 700;
-    color: var(--text);
-    font-variant-numeric: tabular-nums;
-  }
+.popup-chip-val {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
 
-  .popup-chip-val.interest-val {
-    color: #fbbf24;
-  }
+.popup-chip-val.interest-val {
+  color: #fbbf24;
+}
 
-  /* Popup inline inputs */
-  .popup-amt-inp {
-    width: 100%;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 4px;
-    padding: 4px;
-    font-family: inherit;
-    font-size: 0.78rem;
-    font-weight: 500;
-    color: var(--text);
-    margin-top: 2px;
-    transition: border-color var(--transition), background var(--transition);
-    -moz-appearance: textfield;
-  }
+/* Popup inline inputs */
+.popup-amt-inp {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  padding: 4px;
+  font-family: inherit;
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: var(--text);
+  margin-top: 2px;
+  transition: border-color var(--transition), background var(--transition);
+  -moz-appearance: textfield;
+}
 
-  .popup-amt-inp::-webkit-outer-spin-button,
-  .popup-amt-inp::-webkit-inner-spin-button {
-    -webkit-appearance: none;
-  }
+.popup-amt-inp::-webkit-outer-spin-button,
+.popup-amt-inp::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  appearance: none;
+}
 
 
 .popup-amt-inp:focus {
@@ -1118,19 +1137,66 @@ body {
 
 /* RESPONSIVE: very small screens */
 @media (max-width: 400px) {
-  body { padding: 16px 8px 50px; }
-  .contribution-card { padding: 12px 8px; }
-  .contrib-table th { font-size: 0.62rem; padding: 7px 3px; }
-  .contrib-table td { padding: 4px 3px; }
-  .td-mno { font-size: 0.74rem; }
-  .td-exp { font-size: 0.72rem; }
-  .th-mno { width: 28%; }
-  .th-exp { width: 28%; }
-  .th-pay { width: calc((100% - 56%) / 3); }
-  .td-mno { padding-left: 2px !important; }
-  .amt-inp { font-size: 0.72rem; padding: 4px 3px; }
-  .contrib-table tfoot td { font-size: 0.66rem; padding: 6px 3px; }
-  .popup-grid { grid-template-columns: 1fr 1fr; }
-  .popup-chip { padding: 7px 9px; }
-  .popup-chip-val { font-size: 0.78rem; }
+  body {
+    padding: 16px 8px 50px;
+  }
+
+  .contribution-card {
+    padding: 12px 8px;
+  }
+
+  .contrib-table th {
+    font-size: 0.62rem;
+    padding: 7px 3px;
+  }
+
+  .contrib-table td {
+    padding: 4px 3px;
+  }
+
+  .td-mno {
+    font-size: 0.74rem;
+  }
+
+  .td-exp {
+    font-size: 0.72rem;
+  }
+
+  .th-mno {
+    width: 28%;
+  }
+
+  .th-exp {
+    width: 28%;
+  }
+
+  .th-pay {
+    width: calc((100% - 56%) / 3);
+  }
+
+  .td-mno {
+    padding-left: 2px !important;
+  }
+
+  .amt-inp {
+    font-size: 0.72rem;
+    padding: 4px 3px;
+  }
+
+  .contrib-table tfoot td {
+    font-size: 0.66rem;
+    padding: 6px 3px;
+  }
+
+  .popup-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .popup-chip {
+    padding: 7px 9px;
+  }
+
+  .popup-chip-val {
+    font-size: 0.78rem;
+  }
 }

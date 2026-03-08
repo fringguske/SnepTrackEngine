@@ -379,16 +379,16 @@ async function processFile(file: File) {
         const principal = getNum(pLoanCol);
         const installment = getInstallment(principal);
         const loanBalance = getNum(lBalCol);
-        const loanInterest = loanBalance * 0.015;
+        const loanInterest = Math.round(loanBalance * 0.015);
         const advanceBalance = getNum(aBalCol);
-        const advanceInterest = advanceBalance * 0.10;
+        const advanceInterest = Math.round(advanceBalance * 0.10);
         const monthlyShare = getNum(mShareCol); // Extracted from Excel
         const loanRepayment = 0;
         const advRepayment = 0;
 
         const advInterestPaid = getNum(colMap['AdvanceInterestPaid']);
         const advDeduction = getNum(colMap['AdvanceDeduction']);
-        const loanInterestPaid = getNum(colMap['LoanInterestPaid']);
+        const loanInterestPaid = Math.round(loanBalance * 0.015);
         const registrationFee = getNum(colMap['RegistrationFee']);
         const passBook = getNum(colMap['PassBook']);
         const fine = getNum(colMap['Fine']);
@@ -429,7 +429,7 @@ function showContributionSection(members: MemberRow[]) {
   paymentMap.clear(); // Reset map on re-process
 
   members.forEach((m) => {
-    paymentMap.set(m.rowIdx, { cash: 0, paybill: 0, bank: 0, loanRepayment: 0, advRepayment: 0, riskFund: 50 }); // Init to 0, riskFund to 50
+    paymentMap.set(m.rowIdx, { cash: 0, paybill: 0, bank: 0, loanRepayment: 0, advRepayment: 0, riskFund: 0 }); // Init to 0
 
     const tr = document.createElement('tr');
     tr.dataset.rowIdx = String(m.rowIdx);
@@ -457,6 +457,14 @@ function showContributionSection(members: MemberRow[]) {
         if (type === 'cash') pay.cash = val;
         if (type === 'paybill') pay.paybill = val;
         if (type === 'bank') pay.bank = val;
+
+        const totalContrib = pay.cash + pay.paybill + pay.bank;
+        if (totalContrib >= 50) {
+          pay.riskFund = 50;
+        } else {
+          pay.riskFund = 0; // or leave it user customized? Re-evaluate to 0 if under 50.
+        }
+
         updateFooterTotals();
         autoSaveToSheet(m.rowIdx);
       });
