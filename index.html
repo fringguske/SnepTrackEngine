@@ -150,7 +150,7 @@
         <div class="contrib-header">
           <div>
             <h2 class="contrib-title">Member Contributions</h2>
-            <p class="contrib-sub">Enter amounts (KES). Tap Member No. or Expected to view member details.</p>
+            <p class="contrib-sub">Enter amounts (KES). Tap Member No. for member details or Expected for savings and loan records.</p>
           </div>
           <div class="contrib-summary hidden" id="contribSummary">
             <span id="memberCount">0</span> members
@@ -282,6 +282,61 @@
       </div>
 
       <button class="popup-dismiss" id="popupDismiss">Close</button>
+    </div>
+  </div>
+
+  <!-- MEMBER RECORD POPUP -->
+  <div class="popup-overlay hidden" id="recordOverlay">
+    <div class="detail-popup record-popup">
+      <div class="popup-header">
+        <div class="popup-avatar" id="recordAvatar">M</div>
+        <div class="popup-title-block">
+          <p class="popup-mno" id="recordMemberNo">-</p>
+          <p class="popup-mname" id="recordMemberName">-</p>
+        </div>
+        <button class="popup-close" id="recordClose">
+          <svg width="16" height="16" viewBox="0 0 18 18" fill="none">
+            <path d="M3 3l12 12M15 3L3 15" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+          </svg>
+        </button>
+      </div>
+
+      <div class="record-tabs" role="tablist" aria-label="Member record tabs">
+        <button class="record-tab active" id="savingsTabBtn" type="button">Savings Record</button>
+        <button class="record-tab" id="loanRecordTabBtn" type="button">Loan Repayment Record</button>
+      </div>
+
+      <div class="record-panel" id="savingsPanel">
+        <div class="record-grid">
+          <div class="record-item">
+            <span class="record-label">Savings (Akiba)</span>
+            <span class="record-value" id="recordSavingsValue">-</span>
+          </div>
+          <div class="record-item">
+            <span class="record-label">Balance (Baki)</span>
+            <span class="record-value" id="recordSavingsBalance">-</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="record-panel hidden" id="loanRecordPanel">
+        <div class="record-grid">
+          <div class="record-item">
+            <span class="record-label">Principal</span>
+            <span class="record-value" id="recordLoanPrincipal">-</span>
+          </div>
+          <div class="record-item">
+            <span class="record-label">Interest (Faida)</span>
+            <span class="record-value" id="recordLoanInterest">-</span>
+          </div>
+          <div class="record-item record-item-full">
+            <span class="record-label">Balance (Baki)</span>
+            <span class="record-value" id="recordLoanBalance">-</span>
+          </div>
+        </div>
+      </div>
+
+      <button class="popup-dismiss" id="recordDismiss">Close</button>
     </div>
   </div>
 

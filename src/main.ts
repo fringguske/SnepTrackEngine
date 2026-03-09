@@ -1,15 +1,18 @@
 import * as XLSX from 'xlsx';
 import './style.css';
 
-// ─── Target columns for formula fill ──────────────────────────────────────────
+// â”€â”€â”€ Target columns for formula fill â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const FORMULA_COLUMNS: string[] = [
   'Total RePaid', 'MonthlyShare', 'TotalAdvance', 'Shares C/F', 'Loans C/F', 'TotalCash',
 ];
 
 const PAYMENT_COLS = ['Cash', 'Paybill', 'Bank', 'LoanRepayment', 'AdvanceRepayment', 'RiskFund'] as const;
 type PaymentCol = typeof PAYMENT_COLS[number];
+const LIVE_RESULT_COLS = ['MonthlyShare', 'Shares C/F', 'Loans C/F', 'TotalCash', 'TotalAdvance', 'Total RePaid'] as const;
+type LiveResultCol = typeof LIVE_RESULT_COLS[number];
+type RecordTab = 'savings' | 'loan';
 
-// ─── DOM refs — Step 1 ─────────────────────────────────────────────────────────
+// â”€â”€â”€ DOM refs â€” Step 1 â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const dropZone = document.getElementById('dropZone')! as HTMLDivElement;
 const fileInput = document.getElementById('fileInput')! as HTMLInputElement;
 const browseBtn = document.getElementById('browseBtn')! as HTMLButtonElement;
@@ -26,7 +29,7 @@ const logTitle = document.getElementById('logTitle')! as HTMLSpanElement;
 const logList = document.getElementById('logList')! as HTMLUListElement;
 const formulaBanner = document.getElementById('formulaBanner')! as HTMLDivElement;
 
-// ─── DOM refs — Step 2 ────────────────────────────────────────────────────────
+// â”€â”€â”€ DOM refs â€” Step 2 â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const step2Section = document.getElementById('step2Section')! as HTMLElement;
 const memberTableBody = document.getElementById('memberTableBody')! as HTMLTableSectionElement;
 const applyBtn = document.getElementById('applyBtn')! as HTMLButtonElement;
@@ -43,7 +46,7 @@ const step1Ind = document.getElementById('step1Indicator')! as HTMLDivElement;
 const step2Ind = document.getElementById('step2Indicator')! as HTMLDivElement;
 const step3Ind = document.getElementById('step3Indicator')! as HTMLDivElement;
 
-// ─── Detail Popup refs ────────────────────────────────────────────────────────
+// â”€â”€â”€ Detail Popup refs â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const detailOverlay = document.getElementById('detailOverlay')! as HTMLDivElement;
 const popupAvatar = document.getElementById('popupAvatar')! as HTMLDivElement;
 const popupMemberNo = document.getElementById('popupMemberNo')! as HTMLParagraphElement;
@@ -66,7 +69,24 @@ const popupMShareResult = document.getElementById('popupMShareResult')! as HTMLS
 const popupClose = document.getElementById('popupClose')! as HTMLButtonElement;
 const popupDismiss = document.getElementById('popupDismiss')! as HTMLButtonElement;
 
-// ─── State ────────────────────────────────────────────────────────────────────
+// Record popup refs
+const recordOverlay = document.getElementById('recordOverlay')! as HTMLDivElement;
+const recordAvatar = document.getElementById('recordAvatar')! as HTMLDivElement;
+const recordMemberNo = document.getElementById('recordMemberNo')! as HTMLParagraphElement;
+const recordMemberName = document.getElementById('recordMemberName')! as HTMLParagraphElement;
+const savingsTabBtn = document.getElementById('savingsTabBtn')! as HTMLButtonElement;
+const loanRecordTabBtn = document.getElementById('loanRecordTabBtn')! as HTMLButtonElement;
+const savingsPanel = document.getElementById('savingsPanel')! as HTMLDivElement;
+const loanRecordPanel = document.getElementById('loanRecordPanel')! as HTMLDivElement;
+const recordSavingsValue = document.getElementById('recordSavingsValue')! as HTMLSpanElement;
+const recordSavingsBalance = document.getElementById('recordSavingsBalance')! as HTMLSpanElement;
+const recordLoanPrincipal = document.getElementById('recordLoanPrincipal')! as HTMLSpanElement;
+const recordLoanInterest = document.getElementById('recordLoanInterest')! as HTMLSpanElement;
+const recordLoanBalance = document.getElementById('recordLoanBalance')! as HTMLSpanElement;
+const recordClose = document.getElementById('recordClose')! as HTMLButtonElement;
+const recordDismiss = document.getElementById('recordDismiss')! as HTMLButtonElement;
+
+// â”€â”€â”€ State â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 let selectedFile: File | null = null;
 let processedWorkbook: XLSX.WorkBook | null = null;
 let processedSheetName = '';
@@ -84,6 +104,17 @@ interface MemberRow {
   advanceBalance: number;
   advanceInterest: number;
   monthlyShare: number;      // from Excel (for display)
+  totalShares: number;
+  shareTransfer: number;
+  fineDeduction: number;
+  shareDeduction: number;
+  riskFundOut: number;
+  shareOut: number;
+  nonCashOut: number;
+  sharesBalanceBase: number;
+  sharesBalance: number;
+  loansBalanceBase: number;
+  loansBalance: number;
   loanRepayment: number;
   advRepayment: number;
   // Occasional fields from Excel
@@ -95,13 +126,21 @@ interface MemberRow {
   fine: number;
 }
 
-/** Live map of entered amounts — includes riskFund per member */
-const paymentMap = new Map<number, {
+/** Live map of entered amounts â€” includes riskFund per member */
+interface PaymentEntry {
   cash: number; paybill: number; bank: number;
   loanRepayment: number; advRepayment: number; riskFund: number;
-}>();
+  reducingInterest: number;
+  monthlyShare: number;
+  sharesBalance: number;
+  loansBalance: number;
+}
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
+const paymentMap = new Map<number, PaymentEntry>();
+const memberRowMap = new Map<number, MemberRow>();
+let activeRecordMember: MemberRow | null = null;
+
+// â”€â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function formatBytes(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1048576) return `${(bytes / 1024).toFixed(1)} KB`;
@@ -112,36 +151,77 @@ function fmt(n: number): string {
   return n.toLocaleString('en-KE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
-// ─── Live formula engine ─────────────────────────────────────────────────
-function calcLiveValues(m: MemberRow) {
+function syncBodyScrollLock() {
+  const overlayOpen = !detailOverlay.classList.contains('hidden') || !recordOverlay.classList.contains('hidden');
+  document.body.style.overflow = overlayOpen ? 'hidden' : '';
+}
+
+function getHeaderIndex(colMap: Record<string, number>, headers: string[]): number | undefined {
+  return headers.find((header) => colMap[header] !== undefined)
+    ? colMap[headers.find((header) => colMap[header] !== undefined)!]
+    : undefined;
+}
+
+// â”€â”€â”€ Live formula engine â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+function deriveLiveValues(m: MemberRow) {
   const pay = paymentMap.get(m.rowIdx);
-  if (!pay) return;
+  if (!pay) {
+    const sharesBalance = (m.totalShares + m.monthlyShare + m.shareTransfer)
+      - (m.fineDeduction + m.shareDeduction + m.advDeduction + m.riskFundOut + m.shareOut + m.nonCashOut);
 
-  const { cash, paybill, bank, loanRepayment, advRepayment, riskFund } = pay;
-
-  // Step 1: TotalCash
-  const totalCash = cash + paybill + bank;
-
-  // Step 2: TotalAdvance = AdvanceRepayment + AdvanceInterestPaid - AdvanceDeduction
-  const totalAdvance = advRepayment + m.advInterestPaid - m.advDeduction;
-
-  // Step 3: TotalRepaid = TotalCash - (PassBook + RiskFund + TotalAdvance + Fine)
-  const totalRepaid = totalCash - (m.passBook + riskFund + totalAdvance + m.fine);
-
-  // Step 4: MonthlyShare formula
-  const loanBase = loanRepayment + m.loanInterestPaid + m.registrationFee;
-  let monthlyShareCalc: number;
-  if (totalRepaid > loanBase) {
-    monthlyShareCalc = totalRepaid - loanBase;
-  } else {
-    monthlyShareCalc = totalRepaid - m.registrationFee;
+    return {
+      totalCash: 0,
+      totalAdvance: 0,
+      totalRepaid: 0,
+      monthlyShare: m.monthlyShare,
+      sharesBalance: m.sharesBalance || Math.max(0, sharesBalance),
+      loansBalance: m.loansBalance || Math.max(0, m.loanBalance - m.loanRepayment),
+    };
   }
 
-  // Update popup displays
-  popupTotalCash.textContent = totalCash >= 0 ? fmt(totalCash) : '—';
-  popupTotalAdvance.textContent = totalAdvance >= 0 ? fmt(totalAdvance) : '—';
-  popupTotalRepaid.textContent = fmt(totalRepaid);
-  popupMShareResult.textContent = fmt(monthlyShareCalc);
+  const totalCash = pay.cash + pay.paybill + pay.bank;
+  const totalAdvance = pay.advRepayment + m.advInterestPaid - m.advDeduction;
+  const totalRepaid = totalCash - (m.passBook + pay.riskFund + totalAdvance + m.fine);
+  const loanBase = pay.loanRepayment + pay.reducingInterest + m.registrationFee;
+  const monthlyShare = totalRepaid > loanBase
+    ? totalRepaid - loanBase
+    : totalRepaid - m.registrationFee;
+  const sharesBalance = Math.max(
+    0,
+    (m.totalShares + monthlyShare + m.shareTransfer)
+    - (m.fineDeduction + m.shareDeduction + m.advDeduction + m.riskFundOut + m.shareOut + m.nonCashOut)
+  );
+  const loansBalance = Math.max(0, m.loanBalance - pay.loanRepayment);
+
+  return {
+    totalCash,
+    totalAdvance,
+    totalRepaid,
+    monthlyShare,
+    sharesBalance,
+    loansBalance,
+  };
+}
+
+function syncDerivedPaymentState(m: MemberRow) {
+  const pay = paymentMap.get(m.rowIdx);
+  const live = deriveLiveValues(m);
+  if (pay) {
+    pay.monthlyShare = live.monthlyShare;
+    pay.sharesBalance = live.sharesBalance;
+    pay.loansBalance = live.loansBalance;
+  }
+  return live;
+}
+
+function calcLiveValues(m: MemberRow) {
+  const live = syncDerivedPaymentState(m);
+
+  popupTotalCash.textContent = live.totalCash >= 0 ? fmt(live.totalCash) : '—';
+  popupTotalAdvance.textContent = live.totalAdvance >= 0 ? fmt(live.totalAdvance) : '—';
+  popupTotalRepaid.textContent = fmt(live.totalRepaid);
+  popupMShare.textContent = fmt(live.monthlyShare);
+  popupMShareResult.textContent = fmt(live.monthlyShare);
 }
 
 function log(msg: string, type: 'default' | 'success' | 'warn' | 'error' = 'default') {
@@ -154,14 +234,14 @@ function log(msg: string, type: 'default' | 'success' | 'warn' | 'error' = 'defa
 
 function resetLog() {
   logList.innerHTML = '';
-  logIcon.textContent = '⏳';
-  logTitle.textContent = 'Processing…';
+  logIcon.textContent = 'â³';
+  logTitle.textContent = 'Processingâ€¦';
   logCard.classList.remove('hidden');
 }
 
 function setLoading(loading: boolean) {
   processBtn.disabled = loading || !selectedFile;
-  btnText.textContent = loading ? 'Processing…' : 'Process File';
+  btnText.textContent = loading ? 'Processingâ€¦' : 'Process File';
   spinner.classList.toggle('hidden', !loading);
 }
 
@@ -228,7 +308,7 @@ function getInstallment(principal: number): number {
   return 36000;
 }
 
-// ─── File selection ───────────────────────────────────────────────────────────
+// â”€â”€â”€ File selection â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function acceptFile(file: File) {
   if (!file.name.match(/\.xlsx?$/i)) { alert('Please upload an Excel file (.xlsx or .xls).'); return; }
   selectedFile = file;
@@ -247,6 +327,8 @@ function clearFile() {
   selectedFile = null;
   processedWorkbook = null;
   paymentMap.clear();
+  memberRowMap.clear();
+  activeRecordMember = null;
   fileInput.value = '';
   fileInfo.classList.add('hidden');
   processBtn.disabled = true;
@@ -254,10 +336,12 @@ function clearFile() {
   logCard.classList.add('hidden');
   step2Section.classList.add('hidden');
   memberTableBody.innerHTML = '';
+  closeDetailPopup();
+  closeRecordPopup();
   setStepActive(1);
 }
 
-// ─── Drag and drop ────────────────────────────────────────────────────────────
+// â”€â”€â”€ Drag and drop â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('drag-over'); });
 dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
 dropZone.addEventListener('drop', (e) => {
@@ -271,15 +355,17 @@ fileInput.addEventListener('change', () => { if (fileInput.files?.[0]) acceptFil
 clearBtn.addEventListener('click', (e) => { e.stopPropagation(); clearFile(); });
 startOverBtn.addEventListener('click', () => clearFile());
 
-// ─── Core: formula fill & processing ─────────────────────────────────────────
+// â”€â”€â”€ Core: formula fill & processing â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 async function processFile(file: File) {
   setLoading(true);
   resetLog();
   formulaBanner.classList.add('hidden');
   step2Section.classList.add('hidden');
+  closeDetailPopup();
+  closeRecordPopup();
 
   try {
-    log('Reading file…');
+    log('Reading fileâ€¦');
     const arrayBuffer = await file.arrayBuffer();
     const data = new Uint8Array(arrayBuffer);
     const workbook = XLSX.read(data, { type: 'array', cellFormula: true, cellNF: true, cellStyles: true });
@@ -302,7 +388,7 @@ async function processFile(file: File) {
       colMap[header] = c;
     }
 
-    // ── Formula fill ──
+    // â”€â”€ Formula fill â”€â”€
     const found = FORMULA_COLUMNS.filter(col => colMap[col] !== undefined);
     const missing = FORMULA_COLUMNS.filter(col => colMap[col] === undefined);
     if (found.length === 0) throw new Error('None of the target formula column headers found in row 1.');
@@ -328,7 +414,7 @@ async function processFile(file: File) {
       if (colIdx === undefined) continue;
       const srcAddr = XLSX.utils.encode_cell({ r: 1, c: colIdx });
       const srcCell = sheet[srcAddr];
-      if (!srcCell || (srcCell.v === undefined && !srcCell.f)) { log(`"${colName}" — row 2 empty, skipping.`, 'warn'); continue; }
+      if (!srcCell || (srcCell.v === undefined && !srcCell.f)) { log(`"${colName}" â€” row 2 empty, skipping.`, 'warn'); continue; }
       const hasFormula = !!srcCell.f;
       const srcFormula = srcCell.f ?? null;
       let copiedInCol = 0;
@@ -344,22 +430,33 @@ async function processFile(file: File) {
         copiedInCol++;
       }
       totalCopied += copiedInCol;
-      log(`"${colName}" — ${hasFormula ? 'formula' : 'value'} copied to ${copiedInCol} row(s).`, 'success');
+      log(`"${colName}" â€” ${hasFormula ? 'formula' : 'value'} copied to ${copiedInCol} row(s).`, 'success');
     }
     sheet['!ref'] = XLSX.utils.encode_range(range);
     log(`Done! ${totalCopied} cells updated.`, 'success');
 
-    // ── Collect member rows with breakdown ──
+    // â”€â”€ Collect member rows with breakdown â”€â”€
     const memberNoColIdx = colMap['MemberNo'];
     const memberNameIdx = colMap['MemberName'];
     const pLoanCol = colMap['PrincipalLoan'];
     const lBalCol = colMap['LoanBalance'];
     const aBalCol = colMap['AdvanceBalance'];
     const mShareCol = colMap['MonthlyShare'];
+    const totalSharesCol = colMap['TotalShares'];
+    const shareTransferCol = colMap['ShareTransfer'];
+    const fineDeductionCol = colMap['FineDeduction'];
+    const shareDeductionCol = colMap['ShareDeduction'];
+    const riskFundOutCol = colMap['RiskFundOut'];
+    const shareOutCol = colMap['ShareOut'];
+    const nonCashOutCol = colMap['NonCashOut'];
+    const sharesBaseCol = getHeaderIndex(colMap, ['Shares B/F', 'Share B/F', 'Shares BF', 'Share BF']);
+    const sharesBalanceCol = colMap['Shares C/F'];
+    const loansBaseCol = getHeaderIndex(colMap, ['Loans B/F', 'Loan B/F', 'Loans BF', 'Loan BF']);
+    const loansBalanceCol = colMap['Loans C/F'];
     const collected: MemberRow[] = [];
 
     if (memberNoColIdx === undefined) {
-      log('Warning: "MemberNo" column not found — contribution table empty.', 'warn');
+      log('Warning: "MemberNo" column not found â€” contribution table empty.', 'warn');
     } else {
       for (let r = 1; r <= lastRow; r++) {
         const cell = sheet[XLSX.utils.encode_cell({ r, c: memberNoColIdx })];
@@ -383,6 +480,17 @@ async function processFile(file: File) {
         const advanceBalance = getNum(aBalCol);
         const advanceInterest = Math.round(advanceBalance * 0.10);
         const monthlyShare = getNum(mShareCol); // Extracted from Excel
+        const totalShares = getNum(totalSharesCol);
+        const shareTransfer = getNum(shareTransferCol);
+        const fineDeduction = getNum(fineDeductionCol);
+        const shareDeduction = getNum(shareDeductionCol);
+        const riskFundOut = getNum(riskFundOutCol);
+        const shareOut = getNum(shareOutCol);
+        const nonCashOut = getNum(nonCashOutCol);
+        const sharesBalanceBase = getNum(sharesBaseCol);
+        const sharesBalance = getNum(sharesBalanceCol);
+        const loansBalanceBase = getNum(loansBaseCol);
+        const loansBalance = getNum(loansBalanceCol);
         const loanRepayment = 0;
         const advRepayment = 0;
 
@@ -396,7 +504,38 @@ async function processFile(file: File) {
         // The expected calculation uses constant 500 for share and 50 for risk fund.
         const expected = installment + loanInterest + advanceBalance + advanceInterest + 500 + 50;
 
-        collected.push({ memberNo, memberName, rowIdx: r, expected, principal, installment, loanBalance, loanInterest, advanceBalance, advanceInterest, monthlyShare, loanRepayment, advRepayment, advInterestPaid, advDeduction, loanInterestPaid, registrationFee, passBook, fine });
+        collected.push({
+          memberNo,
+          memberName,
+          rowIdx: r,
+          expected,
+          principal,
+          installment,
+          loanBalance,
+          loanInterest,
+          advanceBalance,
+          advanceInterest,
+          monthlyShare,
+          totalShares,
+          shareTransfer,
+          fineDeduction,
+          shareDeduction,
+          riskFundOut,
+          shareOut,
+          nonCashOut,
+          sharesBalanceBase,
+          sharesBalance,
+          loansBalanceBase,
+          loansBalance,
+          loanRepayment,
+          advRepayment,
+          advInterestPaid,
+          advDeduction,
+          loanInterestPaid,
+          registrationFee,
+          passBook,
+          fine
+        });
       }
       log(`Loaded ${collected.length} member(s).`, 'success');
     }
@@ -406,7 +545,7 @@ async function processFile(file: File) {
     outputName = `${file.name.replace(/\.xlsx?$/i, '')}_filled.xlsx`;
     paymentMap.clear();
 
-    logIcon.textContent = '✅';
+    logIcon.textContent = 'âœ…';
     logTitle.textContent = 'Formulas filled!';
     formulaBanner.classList.remove('hidden');
     setStepActive(2);
@@ -415,7 +554,7 @@ async function processFile(file: File) {
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     log(`Error: ${msg}`, 'error');
-    logIcon.textContent = '❌';
+    logIcon.textContent = 'âŒ';
     logTitle.textContent = 'Processing failed';
     console.error(err);
   } finally {
@@ -423,13 +562,27 @@ async function processFile(file: File) {
   }
 }
 
-// ─── Build contribution table ─────────────────────────────────────────────────
+// â”€â”€â”€ Build contribution table â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function showContributionSection(members: MemberRow[]) {
   memberTableBody.innerHTML = '';
   paymentMap.clear(); // Reset map on re-process
+  memberRowMap.clear();
+  activeRecordMember = null;
 
   members.forEach((m) => {
-    paymentMap.set(m.rowIdx, { cash: 0, paybill: 0, bank: 0, loanRepayment: 0, advRepayment: 0, riskFund: 0 }); // Init to 0
+    memberRowMap.set(m.rowIdx, m);
+    paymentMap.set(m.rowIdx, {
+      cash: 0,
+      paybill: 0,
+      bank: 0,
+      loanRepayment: 0,
+      advRepayment: 0,
+      riskFund: 0,
+      reducingInterest: m.loanInterest,
+      monthlyShare: m.monthlyShare,
+      sharesBalance: m.sharesBalance,
+      loansBalance: m.loansBalance,
+    });
 
     const tr = document.createElement('tr');
     tr.dataset.rowIdx = String(m.rowIdx);
@@ -442,6 +595,7 @@ function showContributionSection(members: MemberRow[]) {
     const tdExp = document.createElement('td');
     tdExp.className = 'td-exp';
     tdExp.textContent = fmt(m.expected);
+    tdExp.addEventListener('click', () => openRecordPopup(m));
 
     const createInputCol = (type: 'cash' | 'paybill' | 'bank') => {
       const td = document.createElement('td');
@@ -466,6 +620,7 @@ function showContributionSection(members: MemberRow[]) {
         }
 
         updateFooterTotals();
+        if (activeRecordMember?.rowIdx === m.rowIdx) refreshRecordPopup(m);
         autoSaveToSheet(m.rowIdx);
       });
       td.appendChild(input);
@@ -482,7 +637,7 @@ function showContributionSection(members: MemberRow[]) {
   });
 
   const sumExpected = members.reduce((s, m) => s + m.expected, 0);
-  colTotalExpected.textContent = sumExpected > 0 ? fmt(sumExpected) : '—';
+  colTotalExpected.textContent = sumExpected > 0 ? fmt(sumExpected) : 'â€”';
 
   memberCountEl.textContent = String(members.length);
   contribSummary.classList.remove('hidden');
@@ -504,12 +659,48 @@ function updateFooterTotals() {
     bankTotal += pay.bank;
   }
 
-  colTotalCash.textContent = cashTotal > 0 ? fmt(cashTotal) : '—';
-  colTotalPaybill.textContent = paybillTotal > 0 ? fmt(paybillTotal) : '—';
-  colTotalBank.textContent = bankTotal > 0 ? fmt(bankTotal) : '—';
+  colTotalCash.textContent = cashTotal > 0 ? fmt(cashTotal) : 'â€”';
+  colTotalPaybill.textContent = paybillTotal > 0 ? fmt(paybillTotal) : 'â€”';
+  colTotalBank.textContent = bankTotal > 0 ? fmt(bankTotal) : 'â€”';
 }
 
-// ─── Detail Popup ─────────────────────────────────────────────────────────────
+// â”€â”€â”€ Detail Popup â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+function setRecordTab(tab: RecordTab) {
+  const savingsActive = tab === 'savings';
+  savingsTabBtn.classList.toggle('active', savingsActive);
+  loanRecordTabBtn.classList.toggle('active', !savingsActive);
+  savingsPanel.classList.toggle('hidden', !savingsActive);
+  loanRecordPanel.classList.toggle('hidden', savingsActive);
+}
+
+function refreshRecordPopup(m: MemberRow) {
+  const payment = paymentMap.get(m.rowIdx);
+  const live = syncDerivedPaymentState(m);
+  recordSavingsValue.textContent = fmt(payment?.monthlyShare ?? live.monthlyShare);
+  recordSavingsBalance.textContent = fmt(payment?.sharesBalance ?? live.sharesBalance);
+  recordLoanPrincipal.textContent = fmt(payment?.loanRepayment ?? 0);
+  recordLoanInterest.textContent = fmt(payment?.reducingInterest ?? m.loanInterest);
+  recordLoanBalance.textContent = fmt(payment?.loansBalance ?? live.loansBalance);
+}
+
+function openRecordPopup(m: MemberRow, tab: RecordTab = 'savings') {
+  const initialsSrc = m.memberName && m.memberName !== 'Unknown' ? String(m.memberName) : String(m.memberNo);
+  recordAvatar.textContent = initialsSrc.slice(0, 2).toUpperCase();
+  recordMemberNo.textContent = String(m.memberNo);
+  recordMemberName.textContent = m.memberName;
+  activeRecordMember = m;
+  refreshRecordPopup(m);
+  setRecordTab(tab);
+  recordOverlay.classList.remove('hidden');
+  syncBodyScrollLock();
+}
+
+function closeRecordPopup() {
+  recordOverlay.classList.add('hidden');
+  activeRecordMember = null;
+  syncBodyScrollLock();
+}
+
 function openDetailPopup(m: MemberRow) {
   // Use memberName for initials if possible, fallback to memberNo
   const initialsSrc = m.memberName && m.memberName !== 'Unknown' ? String(m.memberName) : String(m.memberNo);
@@ -519,13 +710,13 @@ function openDetailPopup(m: MemberRow) {
   popupMemberName.textContent = m.memberName;
 
   popupExpected.textContent = `KES ${fmt(m.expected)}`;
-  popupPrincipal.textContent = m.principal > 0 ? fmt(m.principal) : '—';
-  popupInstallment.textContent = m.installment > 0 ? fmt(m.installment) : '—';
-  popupLoanBalance.textContent = m.loanBalance > 0 ? fmt(m.loanBalance) : '—';
-  popupLoanInterest.textContent = m.loanInterest > 0 ? fmt(m.loanInterest) : '—';
-  popupAdvBalance.textContent = m.advanceBalance > 0 ? fmt(m.advanceBalance) : '—';
-  popupAdvInterest.textContent = m.advanceInterest > 0 ? fmt(m.advanceInterest) : '—';
-  popupMShare.textContent = fmt(m.monthlyShare);
+  popupPrincipal.textContent = m.principal > 0 ? fmt(m.principal) : 'â€”';
+  popupInstallment.textContent = m.installment > 0 ? fmt(m.installment) : 'â€”';
+  popupLoanBalance.textContent = m.loanBalance > 0 ? fmt(m.loanBalance) : 'â€”';
+  popupLoanInterest.textContent = m.loanInterest > 0 ? fmt(m.loanInterest) : 'â€”';
+  popupAdvBalance.textContent = m.advanceBalance > 0 ? fmt(m.advanceBalance) : 'â€”';
+  popupAdvInterest.textContent = m.advanceInterest > 0 ? fmt(m.advanceInterest) : 'â€”';
+  popupMShare.textContent = fmt(syncDerivedPaymentState(m).monthlyShare);
 
   const payData = paymentMap.get(m.rowIdx)!;
   popupRiskFund.value = String(payData.riskFund);
@@ -537,36 +728,50 @@ function openDetailPopup(m: MemberRow) {
     if (val > 50) { val = 50; popupRiskFund.value = '50'; }
     payData.riskFund = val;
     calcLiveValues(m);
+    if (activeRecordMember?.rowIdx === m.rowIdx) refreshRecordPopup(m);
     autoSaveToSheet(m.rowIdx);
   };
 
   popupLoanRepayment.oninput = () => {
     payData.loanRepayment = parseFloat(popupLoanRepayment.value) || 0;
     calcLiveValues(m);
+    if (activeRecordMember?.rowIdx === m.rowIdx) refreshRecordPopup(m);
     autoSaveToSheet(m.rowIdx);
   };
   popupAdvRepayment.oninput = () => {
     payData.advRepayment = parseFloat(popupAdvRepayment.value) || 0;
     calcLiveValues(m);
+    if (activeRecordMember?.rowIdx === m.rowIdx) refreshRecordPopup(m);
     autoSaveToSheet(m.rowIdx);
   };
 
   calcLiveValues(m); // initial paint for computed popup rows
 
   detailOverlay.classList.remove('hidden');
-  document.body.style.overflow = 'hidden'; // prevent scrolling behind popup
+  syncBodyScrollLock();
 }
 
 function closeDetailPopup() {
   detailOverlay.classList.add('hidden');
-  document.body.style.overflow = '';
+  syncBodyScrollLock();
 }
 
 [popupClose, popupDismiss].forEach(btn => btn.addEventListener('click', closeDetailPopup));
 detailOverlay.addEventListener('click', (e) => { if (e.target === detailOverlay) closeDetailPopup(); });
-document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeDetailPopup(); });
+[recordClose, recordDismiss].forEach(btn => btn.addEventListener('click', closeRecordPopup));
+recordOverlay.addEventListener('click', (e) => { if (e.target === recordOverlay) closeRecordPopup(); });
+savingsTabBtn.addEventListener('click', () => setRecordTab('savings'));
+loanRecordTabBtn.addEventListener('click', () => setRecordTab('loan'));
+document.addEventListener('keydown', (e) => {
+  if (e.key !== 'Escape') return;
+  if (!recordOverlay.classList.contains('hidden')) {
+    closeRecordPopup();
+    return;
+  }
+  closeDetailPopup();
+});
 
-// ─── Auto-save: write current row data to in-memory workbook ──────────────────
+// â”€â”€â”€ Auto-save: write current row data to in-memory workbook â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function autoSaveToSheet(rowIdx: number) {
   if (!processedWorkbook) return;
   const sheet = processedWorkbook.Sheets[processedSheetName];
@@ -574,12 +779,13 @@ function autoSaveToSheet(rowIdx: number) {
   const ref = sheet['!ref'];
   if (!ref) return;
   const range = XLSX.utils.decode_range(ref);
-  const colCache: Partial<Record<PaymentCol, number>> = {};
+  const colCache: Partial<Record<PaymentCol | LiveResultCol, number>> = {};
   for (let c = range.s.c; c <= range.e.c; c++) {
     const cell = sheet[XLSX.utils.encode_cell({ r: 0, c })];
     if (!cell) continue;
-    const hdr = (cell.v as string)?.toString().trim() as PaymentCol;
-    if (PAYMENT_COLS.includes(hdr)) colCache[hdr] = c;
+    const hdr = (cell.v as string)?.toString().trim() as PaymentCol | LiveResultCol;
+    if (PAYMENT_COLS.includes(hdr as PaymentCol)) colCache[hdr] = c;
+    if (LIVE_RESULT_COLS.includes(hdr as LiveResultCol)) colCache[hdr] = c;
   }
   const payment = paymentMap.get(rowIdx);
   if (!payment) return;
@@ -595,9 +801,29 @@ function autoSaveToSheet(rowIdx: number) {
     const addr = XLSX.utils.encode_cell({ r: rowIdx, c: cIdx });
     sheet[addr] = { t: 'n', v: vals[col] || 0 };
   }
+
+  const member = memberRowMap.get(rowIdx);
+  if (!member) return;
+
+  const live = syncDerivedPaymentState(member);
+  const liveVals: Record<LiveResultCol, number> = {
+    MonthlyShare: live.monthlyShare,
+    'Shares C/F': live.sharesBalance,
+    'Loans C/F': live.loansBalance,
+    TotalCash: live.totalCash,
+    TotalAdvance: live.totalAdvance,
+    'Total RePaid': live.totalRepaid,
+  };
+
+  for (const col of LIVE_RESULT_COLS) {
+    const cIdx = colCache[col];
+    if (cIdx === undefined) continue;
+    const addr = XLSX.utils.encode_cell({ r: rowIdx, c: cIdx });
+    sheet[addr] = { t: 'n', v: liveVals[col] || 0 };
+  }
 }
 
-// ─── Apply contributions & download ──────────────────────────────────────────
+// â”€â”€â”€ Apply contributions & download â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function applyContributions() {
   if (!processedWorkbook) return;
 
@@ -636,6 +862,8 @@ function applyContributions() {
       sheet[addr] = { t: 'n', v: vals[col] || 0 }; // write 0 if blank/unpaid
       if (vals[col] > 0) writes++;
     }
+
+    autoSaveToSheet(rowIdx);
   }
 
   const buf = XLSX.write(processedWorkbook, { bookType: 'xlsx', type: 'buffer' }) as ArrayBuffer;
@@ -652,11 +880,11 @@ function applyContributions() {
   console.log(`Written: ${writes} payment value(s).`);
 }
 
-// ─── Event wiring ─────────────────────────────────────────────────────────────
+// â”€â”€â”€ Event wiring â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 processBtn.addEventListener('click', () => { if (selectedFile) processFile(selectedFile); });
 applyBtn.addEventListener('click', applyContributions);
 
-// ─── Page init: enforce correct state on load ─────────────────────────────────
+// â”€â”€â”€ Page init: enforce correct state on load â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Prevents spinner / formula-filled banner from showing before any file action.
 (function initPageState() {
   spinner.classList.add('hidden');
@@ -668,10 +896,11 @@ applyBtn.addEventListener('click', applyContributions);
   btnText.textContent = 'Process File';
 })();
 
-// ─── Warning before exit ───────────────────────────────────────────────────────
+// â”€â”€â”€ Warning before exit â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 window.addEventListener('beforeunload', (e) => {
   if (selectedFile) {
     e.preventDefault();
     e.returnValue = ''; // Standard way to trigger the confirmation dialog
   }
 });
+

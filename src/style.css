@@ -759,9 +759,15 @@ body {
   font-size: 0.78rem;
   color: #a5b4fc;
   font-variant-numeric: tabular-nums;
+  cursor: pointer;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  text-decoration: underline dotted rgba(165, 180, 252, 0.32);
+}
+
+.td-exp:hover {
+  color: #c7d2fe;
 }
 
 /* Amount inputs */
@@ -1084,6 +1090,75 @@ body {
   transform: translateY(0);
 }
 
+.record-popup {
+  max-width: 420px;
+}
+
+.record-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  padding: 14px 16px 0;
+}
+
+.record-tab {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-muted);
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-family: inherit;
+  font-size: 0.77rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background var(--transition), color var(--transition), border-color var(--transition);
+}
+
+.record-tab.active {
+  background: linear-gradient(135deg, rgba(108, 99, 255, 0.18), rgba(62, 207, 207, 0.12));
+  border-color: rgba(108, 99, 255, 0.35);
+  color: var(--text);
+}
+
+.record-panel {
+  padding: 16px;
+}
+
+.record-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.record-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.record-item-full {
+  grid-column: 1 / -1;
+}
+
+.record-label {
+  font-size: 0.68rem;
+  color: var(--text-muted);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.record-value {
+  font-size: 1rem;
+  color: var(--text);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
 /* Live computed results block */
 .popup-computed {
   border-top: 1px solid rgba(255, 255, 255, 0.07);
@@ -1122,6 +1197,7 @@ body {
   padding: 6px 8px;
   border-radius: 8px;
   margin-top: 4px;
+  display: none;
 }
 
 .highlight-val {
@@ -1198,5 +1274,9 @@ body {
 
   .popup-chip-val {
     font-size: 0.78rem;
+  }
+
+  .record-grid {
+    grid-template-columns: 1fr;
   }
 }
