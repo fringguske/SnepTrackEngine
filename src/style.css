@@ -713,6 +713,16 @@ body {
   background: rgba(239, 68, 68, 0.12);
 }
 
+.contrib-table tbody tr.inactive-row {
+  background: rgba(127, 29, 29, 0.18);
+  opacity: 0.82;
+  filter: saturate(0.85) blur(0.15px);
+}
+
+.contrib-table tbody tr.inactive-row:hover {
+  background: rgba(127, 29, 29, 0.24);
+}
+
 .contrib-table tbody tr:last-child {
   border-bottom: none;
 }
@@ -771,6 +781,32 @@ body {
   color: #7fffd4;
 }
 
+.member-no-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.member-no-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.member-status-badge {
+  flex-shrink: 0;
+  border: 1px solid rgba(252, 165, 165, 0.35);
+  background: rgba(127, 29, 29, 0.32);
+  color: #fecaca;
+  border-radius: 999px;
+  padding: 2px 6px;
+  font-size: 0.55rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
 /* Expected cell */
 .td-exp {
   font-weight: 700;
@@ -791,6 +827,20 @@ body {
 .contrib-table tbody tr.alert-row .td-exp {
   color: #fecaca;
   text-decoration-color: rgba(254, 202, 202, 0.45);
+}
+
+.contrib-table tbody tr.inactive-row .td-mno,
+.contrib-table tbody tr.inactive-row .td-exp {
+  color: #fca5a5;
+  text-decoration-color: rgba(252, 165, 165, 0.45);
+}
+
+.contrib-table tbody tr.inactive-row .td-mno {
+  background: rgba(56, 20, 26, 0.94);
+}
+
+.contrib-table tbody tr.inactive-row:hover .td-mno {
+  background: rgba(84, 27, 35, 0.96);
 }
 
 /* Amount inputs */
@@ -831,6 +881,19 @@ body {
 .amt-inp.bank-inp:focus {
   border-color: rgba(245, 158, 11, 0.55);
   background: rgba(245, 158, 11, 0.07);
+}
+
+.amt-inp:disabled {
+  cursor: not-allowed;
+  color: rgba(232, 234, 246, 0.8);
+  background: rgba(255, 255, 255, 0.03);
+  border-color: rgba(255, 255, 255, 0.06);
+}
+
+.contrib-table tbody tr.inactive-row .amt-inp:disabled {
+  color: #fecaca;
+  background: rgba(127, 29, 29, 0.16);
+  border-color: rgba(252, 165, 165, 0.15);
 }
 
 .alert-inp {
@@ -1095,6 +1158,18 @@ body {
   outline: none;
   border-color: rgba(108, 99, 255, 0.55);
   background: rgba(108, 99, 255, 0.08);
+}
+
+.popup-amt-inp:disabled {
+  cursor: not-allowed;
+  color: rgba(232, 234, 246, 0.78);
+  background: rgba(127, 29, 29, 0.12);
+  border-color: rgba(252, 165, 165, 0.14);
+}
+
+.readonly-member .popup-chip-lbl,
+.readonly-member .popup-mname {
+  color: #fca5a5;
 }
 
 /* Dismiss button */

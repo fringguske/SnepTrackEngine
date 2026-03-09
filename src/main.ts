@@ -110,6 +110,8 @@ let outputName = 'modified.xlsx';
 interface MemberRow {
   memberNo: string | number;
   memberName: string;
+  memberStatus: string;
+  isInactive: boolean;
   rowIdx: number;
   hasAlertColor: boolean;
   expected: number;
@@ -172,6 +174,15 @@ function fmt(n: number): string {
 }
 
 const MONEY_PLACEHOLDER = 'KSh 0.00';
+const popupEditableInputs = [
+  popupRiskFund,
+  popupLoanRepayment,
+  popupAdvRepayment,
+  popupFineDeduction,
+  popupShareDeduction,
+  popupAdvanceDeduction,
+  popupRiskFundOut,
+];
 
 function syncBodyScrollLock() {
   const overlayOpen = !detailOverlay.classList.contains('hidden') || !recordOverlay.classList.contains('hidden');
@@ -299,6 +310,13 @@ function calcLiveValues(m: MemberRow) {
   popupTotalRepaid.textContent = fmt(live.totalRepaid);
   popupMShare.textContent = fmt(live.monthlyShare);
   popupMShareResult.textContent = fmt(live.monthlyShare);
+}
+
+function setDetailPopupEditableState(isEditable: boolean) {
+  detailOverlay.classList.toggle('readonly-member', !isEditable);
+  popupEditableInputs.forEach((input) => {
+    input.disabled = !isEditable;
+  });
 }
 
 function log(msg: string, type: 'default' | 'success' | 'warn' | 'error' = 'default') {
@@ -442,7 +460,7 @@ async function processFile(file: File) {
   closeRecordPopup();
 
   try {
-    log('Reading fileÃ¢â‚¬Â¦');
+    log('Reading file...');
     const arrayBuffer = await file.arrayBuffer();
     const data = new Uint8Array(arrayBuffer);
     const workbook = XLSX.read(data, { type: 'array', cellFormula: true, cellNF: true, cellStyles: true });
@@ -491,7 +509,7 @@ async function processFile(file: File) {
       if (colIdx === undefined) continue;
       const srcAddr = XLSX.utils.encode_cell({ r: 1, c: colIdx });
       const srcCell = sheet[srcAddr];
-      if (!srcCell || (srcCell.v === undefined && !srcCell.f)) { log(`"${colName}" Ã¢â‚¬â€ row 2 empty, skipping.`, 'warn'); continue; }
+      if (!srcCell || (srcCell.v === undefined && !srcCell.f)) { log(`"${colName}" - row 2 empty, skipping.`, 'warn'); continue; }
       const hasFormula = !!srcCell.f;
       const srcFormula = srcCell.f ?? null;
       let copiedInCol = 0;
@@ -507,7 +525,7 @@ async function processFile(file: File) {
         copiedInCol++;
       }
       totalCopied += copiedInCol;
-      log(`"${colName}" Ã¢â‚¬â€ ${hasFormula ? 'formula' : 'value'} copied to ${copiedInCol} row(s).`, 'success');
+      log(`"${colName}" - ${hasFormula ? 'formula' : 'value'} copied to ${copiedInCol} row(s).`, 'success');
     }
     sheet['!ref'] = XLSX.utils.encode_range(range);
     log(`Done! ${totalCopied} cells updated.`, 'success');
@@ -526,6 +544,7 @@ async function processFile(file: File) {
     const riskFundOutCol = colMap['RiskFundOut'];
     const shareOutCol = colMap['ShareOut'];
     const nonCashOutCol = colMap['NonCashOut'];
+    const memberStatusCol = colMap['MemberStatus'];
     const sharesBaseCol = getHeaderIndex(colMap, ['Shares B/F', 'Share B/F', 'Shares BF', 'Share BF']);
     const sharesBalanceCol = colMap['Shares C/F'];
     const loansBaseCol = getHeaderIndex(colMap, ['Loans B/F', 'Loan B/F', 'Loans BF', 'Loan BF']);
@@ -533,7 +552,7 @@ async function processFile(file: File) {
     const collected: MemberRow[] = [];
 
     if (memberNoColIdx === undefined) {
-      log('Warning: "MemberNo" column not found Ã¢â‚¬â€ contribution table empty.', 'warn');
+      log('Warning: "MemberNo" column not found - contribution table empty.', 'warn');
     } else {
       for (let r = 1; r <= lastRow; r++) {
         const cell = sheet[XLSX.utils.encode_cell({ r, c: memberNoColIdx })];
@@ -542,6 +561,9 @@ async function processFile(file: File) {
 
         const nameCell = memberNameIdx !== undefined ? sheet[XLSX.utils.encode_cell({ r, c: memberNameIdx })] : null;
         const memberName = nameCell && nameCell.v ? String(nameCell.v).trim() : 'Unknown';
+        const statusCell = memberStatusCol !== undefined ? sheet[XLSX.utils.encode_cell({ r, c: memberStatusCol })] : null;
+        const memberStatus = statusCell && statusCell.v ? String(statusCell.v).trim() : 'Active';
+        const isInactive = memberStatus.toLowerCase() === 'inactive';
         const excludedColorCols = [
           memberNoColIdx,
           memberNameIdx,
@@ -589,6 +611,8 @@ async function processFile(file: File) {
         collected.push({
           memberNo,
           memberName,
+          memberStatus,
+          isInactive,
           rowIdx: r,
           hasAlertColor,
           expected,
@@ -674,10 +698,24 @@ function showContributionSection(members: MemberRow[]) {
     const tr = document.createElement('tr');
     tr.dataset.rowIdx = String(m.rowIdx);
     if (m.hasAlertColor) tr.classList.add('alert-row');
+    if (m.isInactive) tr.classList.add('inactive-row');
 
     const tdMno = document.createElement('td');
     tdMno.className = 'td-mno';
-    tdMno.textContent = String(m.memberNo);
+    const memberNoWrap = document.createElement('span');
+    memberNoWrap.className = 'member-no-wrap';
+    const memberNoText = document.createElement('span');
+    memberNoText.className = 'member-no-text';
+    memberNoText.textContent = String(m.memberNo);
+    memberNoWrap.appendChild(memberNoText);
+    if (m.isInactive) {
+      const badge = document.createElement('span');
+      badge.className = 'member-status-badge';
+      badge.textContent = 'InActive';
+      memberNoWrap.appendChild(badge);
+      tdMno.title = 'This member is inactive and cannot be edited.';
+    }
+    tdMno.appendChild(memberNoWrap);
     tdMno.addEventListener('click', () => openDetailPopup(m));
 
     const tdExp = document.createElement('td');
@@ -693,7 +731,9 @@ function showContributionSection(members: MemberRow[]) {
       input.step = '0.01';
       input.className = `amt-inp ${type}-inp`;
       if (m.hasAlertColor) input.classList.add('alert-inp');
+      input.disabled = m.isInactive;
       input.placeholder = '0';
+      if (m.isInactive) input.title = 'Inactive members cannot be edited.';
       input.addEventListener('input', () => {
         const val = parseFloat(input.value) || 0;
         const pay = paymentMap.get(m.rowIdx)!;
@@ -776,7 +816,7 @@ function openRecordPopup(m: MemberRow, tab: RecordTab = 'savings') {
   const initialsSrc = m.memberName && m.memberName !== 'Unknown' ? String(m.memberName) : String(m.memberNo);
   recordAvatar.textContent = initialsSrc.slice(0, 2).toUpperCase();
   recordMemberNo.textContent = String(m.memberNo);
-  recordMemberName.textContent = m.memberName;
+  recordMemberName.textContent = m.isInactive ? `${m.memberName} (InActive)` : m.memberName;
   activeRecordMember = m;
   refreshRecordPopup(m);
   setRecordTab(tab);
@@ -796,7 +836,7 @@ function openDetailPopup(m: MemberRow) {
   const initials = initialsSrc.slice(0, 2).toUpperCase();
   popupAvatar.textContent = initials;
   popupMemberNo.textContent = String(m.memberNo);
-  popupMemberName.textContent = m.memberName;
+  popupMemberName.textContent = m.isInactive ? `${m.memberName} (InActive)` : m.memberName;
 
   popupExpected.textContent = `KSh ${fmt(m.expected)}`;
   popupPrincipal.textContent = m.principal > 0 ? fmt(m.principal) : MONEY_PLACEHOLDER;
@@ -815,6 +855,7 @@ function openDetailPopup(m: MemberRow) {
   popupShareDeduction.value = payData.shareDeduction ? payData.shareDeduction.toString() : '';
   popupAdvanceDeduction.value = payData.advanceDeduction ? payData.advanceDeduction.toString() : '';
   popupRiskFundOut.value = payData.riskFundOut ? payData.riskFundOut.toString() : '';
+  setDetailPopupEditableState(!m.isInactive);
 
   popupRiskFund.oninput = () => {
     let val = parseInt(popupRiskFund.value) || 0;
