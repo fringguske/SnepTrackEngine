@@ -52,7 +52,7 @@
         </svg>
         <span>SNEP Track Engine</span>
       </div>
-      <p class="tagline">Fill formulas, enter member contributions, and export — all in one place</p>
+      <p class="tagline">Fill formulas, enter member contributions, and export all in one place</p>
     </header>
 
     <!-- ═══ STEP 1 ═══ -->
@@ -74,7 +74,7 @@
             </svg>
           </div>
           <p class="drop-title">Drag &amp; drop your Excel file</p>
-          <p class="drop-sub">or click to browse — <strong>.xlsx</strong> only</p>
+          <p class="drop-sub">or click to browse, <strong>.xlsx</strong> only</p>
           <input type="file" id="fileInput" accept=".xlsx,.xls" hidden />
           <button class="btn btn-outline" id="browseBtn">Browse File</button>
         </div>
@@ -126,13 +126,13 @@
       </button>
 
       <div class="log-card hidden" id="logCard">
-        <div class="log-header"><span id="logIcon" class="log-icon">⏳</span><span id="logTitle"
-            class="log-status">Processing…</span></div>
+        <div class="log-header"><span id="logIcon" class="log-icon">...</span><span id="logTitle"
+            class="log-status">Processing...</span></div>
         <ul class="log-list" id="logList"></ul>
       </div>
 
       <div class="formula-success-banner hidden" id="formulaBanner">
-        <div class="banner-icon">✅</div>
+        <div class="banner-icon">Done</div>
         <div class="banner-body">
           <p class="banner-title">Formulas filled!</p>
           <p class="banner-sub">Scroll down to record member payments.</p>
@@ -173,10 +173,10 @@
             <tfoot>
               <tr class="totals-row">
                 <td colspan="1" class="totals-label">Totals</td>
-                <td class="tf-exp" id="colTotalExpected">—</td>
-                <td class="tf-pay" id="colTotalCash">—</td>
-                <td class="tf-pay" id="colTotalPaybill">—</td>
-                <td class="tf-pay" id="colTotalBank">—</td>
+                <td class="tf-exp" id="colTotalExpected">KSh 0.00</td>
+                <td class="tf-pay" id="colTotalCash">KSh 0.00</td>
+                <td class="tf-pay" id="colTotalPaybill">KSh 0.00</td>
+                <td class="tf-pay" id="colTotalBank">KSh 0.00</td>
               </tr>
             </tfoot>
           </table>
@@ -190,7 +190,7 @@
           </svg>
           Apply &amp; Download
         </button>
-        <button class="btn btn-ghost" id="startOverBtn">↩ Start over</button>
+        <button class="btn btn-ghost" id="startOverBtn">Start over</button>
       </div>
     </section>
   </main>
@@ -201,8 +201,8 @@
       <div class="popup-header">
         <div class="popup-avatar" id="popupAvatar">M</div>
         <div class="popup-title-block">
-          <p class="popup-mno" id="popupMemberNo">—</p>
-          <p class="popup-mname" id="popupMemberName">—</p>
+          <p class="popup-mno" id="popupMemberNo">-</p>
+          <p class="popup-mname" id="popupMemberName">-</p>
         </div>
         <button class="popup-close" id="popupClose">
           <svg width="16" height="16" viewBox="0 0 18 18" fill="none">
@@ -214,38 +214,38 @@
       <!-- Expected chip -->
       <div class="popup-expected-row">
         <span class="popup-exp-lbl">Total Expected</span>
-        <span class="popup-exp-val" id="popupExpected">—</span>
+        <span class="popup-exp-val" id="popupExpected">KSh 0.00</span>
       </div>
 
       <!-- Breakdown grid -->
       <div class="popup-grid">
         <div class="popup-chip">
           <span class="popup-chip-lbl">Principal Loan</span>
-          <span class="popup-chip-val" id="popupPrincipal">—</span>
+          <span class="popup-chip-val" id="popupPrincipal">KSh 0.00</span>
         </div>
         <div class="popup-chip">
           <span class="popup-chip-lbl">Installment</span>
-          <span class="popup-chip-val" id="popupInstallment">—</span>
+          <span class="popup-chip-val" id="popupInstallment">KSh 0.00</span>
         </div>
         <div class="popup-chip">
           <span class="popup-chip-lbl">Loan Balance</span>
-          <span class="popup-chip-val" id="popupLoanBalance">—</span>
+          <span class="popup-chip-val" id="popupLoanBalance">KSh 0.00</span>
         </div>
         <div class="popup-chip">
           <span class="popup-chip-lbl">Reducing Int. (1.5%)</span>
-          <span class="popup-chip-val interest-val" id="popupLoanInterest">—</span>
+          <span class="popup-chip-val interest-val" id="popupLoanInterest">KSh 0.00</span>
         </div>
         <div class="popup-chip">
           <span class="popup-chip-lbl">Advance Balance</span>
-          <span class="popup-chip-val" id="popupAdvBalance">—</span>
+          <span class="popup-chip-val" id="popupAdvBalance">KSh 0.00</span>
         </div>
         <div class="popup-chip">
           <span class="popup-chip-lbl">Adv. Interest (10%)</span>
-          <span class="popup-chip-val interest-val" id="popupAdvInterest">—</span>
+          <span class="popup-chip-val interest-val" id="popupAdvInterest">KSh 0.00</span>
         </div>
         <div class="popup-chip">
           <span class="popup-chip-lbl">Monthly Share</span>
-          <span class="popup-chip-val" id="popupMShare">—</span>
+          <span class="popup-chip-val" id="popupMShare">KSh 0.00</span>
         </div>
         <div class="popup-chip">
           <span class="popup-chip-lbl">Risk Fund (max 50)</span>
@@ -259,25 +259,41 @@
           <span class="popup-chip-lbl">Adv. Repayment</span>
           <input type="number" class="popup-amt-inp" id="popupAdvRepayment" placeholder="0" min="0" step="0.01" />
         </div>
+        <div class="popup-chip">
+          <span class="popup-chip-lbl">Fine Deduction</span>
+          <input type="number" class="popup-amt-inp" id="popupFineDeduction" placeholder="0" min="0" step="0.01" />
+        </div>
+        <div class="popup-chip">
+          <span class="popup-chip-lbl">Share Deduction</span>
+          <input type="number" class="popup-amt-inp" id="popupShareDeduction" placeholder="0" min="0" step="0.01" />
+        </div>
+        <div class="popup-chip">
+          <span class="popup-chip-lbl">Advance Deduction</span>
+          <input type="number" class="popup-amt-inp" id="popupAdvanceDeduction" placeholder="0" min="0" step="0.01" />
+        </div>
+        <div class="popup-chip">
+          <span class="popup-chip-lbl">Risk Fund Out</span>
+          <input type="number" class="popup-amt-inp" id="popupRiskFundOut" placeholder="0" min="0" step="0.01" />
+        </div>
       </div>
 
       <!-- Live computed results -->
       <div class="popup-computed">
         <div class="popup-comp-row">
           <span class="popup-comp-lbl">Total Cash</span>
-          <span class="popup-comp-val" id="popupTotalCash">—</span>
+          <span class="popup-comp-val" id="popupTotalCash">KSh 0.00</span>
         </div>
         <div class="popup-comp-row">
           <span class="popup-comp-lbl">Total Advance</span>
-          <span class="popup-comp-val" id="popupTotalAdvance">—</span>
+          <span class="popup-comp-val" id="popupTotalAdvance">KSh 0.00</span>
         </div>
         <div class="popup-comp-row">
           <span class="popup-comp-lbl">Total Repaid</span>
-          <span class="popup-comp-val" id="popupTotalRepaid">—</span>
+          <span class="popup-comp-val" id="popupTotalRepaid">KSh 0.00</span>
         </div>
         <div class="popup-comp-row computed-highlight">
-          <span class="popup-comp-lbl">Monthly Share ≈</span>
-          <span class="popup-comp-val highlight-val" id="popupMShareResult">—</span>
+          <span class="popup-comp-lbl">Monthly Share ~</span>
+          <span class="popup-comp-val highlight-val" id="popupMShareResult">KSh 0.00</span>
         </div>
       </div>
 

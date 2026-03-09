@@ -6,7 +6,18 @@ const FORMULA_COLUMNS: string[] = [
   'Total RePaid', 'MonthlyShare', 'TotalAdvance', 'Shares C/F', 'Loans C/F', 'TotalCash',
 ];
 
-const PAYMENT_COLS = ['Cash', 'Paybill', 'Bank', 'LoanRepayment', 'AdvanceRepayment', 'RiskFund'] as const;
+const PAYMENT_COLS = [
+  'Cash',
+  'Paybill',
+  'Bank',
+  'LoanRepayment',
+  'AdvanceRepayment',
+  'RiskFund',
+  'FineDeduction',
+  'ShareDeduction',
+  'AdvanceDeduction',
+  'RiskFundOut',
+] as const;
 type PaymentCol = typeof PAYMENT_COLS[number];
 const LIVE_RESULT_COLS = ['MonthlyShare', 'Shares C/F', 'Loans C/F', 'TotalCash', 'TotalAdvance', 'Total RePaid'] as const;
 type LiveResultCol = typeof LIVE_RESULT_COLS[number];
@@ -62,6 +73,10 @@ const popupMShare = document.getElementById('popupMShare')! as HTMLSpanElement;
 const popupLoanRepayment = document.getElementById('popupLoanRepayment')! as HTMLInputElement;
 const popupAdvRepayment = document.getElementById('popupAdvRepayment')! as HTMLInputElement;
 const popupRiskFund = document.getElementById('popupRiskFund')! as HTMLInputElement;
+const popupFineDeduction = document.getElementById('popupFineDeduction')! as HTMLInputElement;
+const popupShareDeduction = document.getElementById('popupShareDeduction')! as HTMLInputElement;
+const popupAdvanceDeduction = document.getElementById('popupAdvanceDeduction')! as HTMLInputElement;
+const popupRiskFundOut = document.getElementById('popupRiskFundOut')! as HTMLInputElement;
 const popupTotalCash = document.getElementById('popupTotalCash')! as HTMLSpanElement;
 const popupTotalAdvance = document.getElementById('popupTotalAdvance')! as HTMLSpanElement;
 const popupTotalRepaid = document.getElementById('popupTotalRepaid')! as HTMLSpanElement;
@@ -96,6 +111,7 @@ interface MemberRow {
   memberNo: string | number;
   memberName: string;
   rowIdx: number;
+  hasAlertColor: boolean;
   expected: number;
   principal: number;
   installment: number;
@@ -130,6 +146,10 @@ interface MemberRow {
 interface PaymentEntry {
   cash: number; paybill: number; bank: number;
   loanRepayment: number; advRepayment: number; riskFund: number;
+  fineDeduction: number;
+  shareDeduction: number;
+  advanceDeduction: number;
+  riskFundOut: number;
   reducingInterest: number;
   monthlyShare: number;
   sharesBalance: number;
@@ -151,6 +171,9 @@ function fmt(n: number): string {
   return n.toLocaleString('en-KE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
+const MONEY_PLACEHOLDER = 'KSh 0.00';
+const TEXT_PLACEHOLDER = '-';
+
 function syncBodyScrollLock() {
   const overlayOpen = !detailOverlay.classList.contains('hidden') || !recordOverlay.classList.contains('hidden');
   document.body.style.overflow = overlayOpen ? 'hidden' : '';
@@ -160,6 +183,61 @@ function getHeaderIndex(colMap: Record<string, number>, headers: string[]): numb
   return headers.find((header) => colMap[header] !== undefined)
     ? colMap[headers.find((header) => colMap[header] !== undefined)!]
     : undefined;
+}
+
+function normalizeColorHex(value: unknown): string | null {
+  if (typeof value !== 'string') return null;
+  const hex = value.trim().replace(/^#/, '').toUpperCase();
+  if (/^[0-9A-F]{8}$/.test(hex)) return hex.slice(2);
+  if (/^[0-9A-F]{6}$/.test(hex)) return hex;
+  return null;
+}
+
+function isAlertHex(hex: string): boolean {
+  const red = parseInt(hex.slice(0, 2), 16);
+  const green = parseInt(hex.slice(2, 4), 16);
+  const blue = parseInt(hex.slice(4, 6), 16);
+  return red >= 150 && red >= green + 35 && red >= blue + 35;
+}
+
+function cellHasAlertColor(cell: XLSX.CellObject | undefined): boolean {
+  const style = (cell as XLSX.CellObject & {
+    s?: {
+      font?: { color?: { rgb?: string } };
+      fill?: {
+        fgColor?: { rgb?: string };
+        bgColor?: { rgb?: string };
+      };
+      color?: { rgb?: string };
+    };
+  })?.s;
+  if (!style) return false;
+
+  const candidates = [
+    style.font?.color?.rgb,
+    style.fill?.fgColor?.rgb,
+    style.fill?.bgColor?.rgb,
+    style.color?.rgb,
+  ];
+
+  return candidates
+    .map(normalizeColorHex)
+    .some((hex): hex is string => !!hex && isAlertHex(hex));
+}
+
+function rowHasAlertColor(
+  sheet: XLSX.WorkSheet,
+  rowIdx: number,
+  range: XLSX.Range,
+  excludedCols: number[] = [],
+): boolean {
+  for (let c = range.s.c; c <= range.e.c; c++) {
+    if (excludedCols.includes(c)) continue;
+    const cell = sheet[XLSX.utils.encode_cell({ r: rowIdx, c })];
+    if (!cell || cell.v === undefined || cell.v === null || cell.v === '') continue;
+    if (cellHasAlertColor(cell)) return true;
+  }
+  return false;
 }
 
 // â”€â”€â”€ Live formula engine â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -180,7 +258,7 @@ function deriveLiveValues(m: MemberRow) {
   }
 
   const totalCash = pay.cash + pay.paybill + pay.bank;
-  const totalAdvance = pay.advRepayment + m.advInterestPaid - m.advDeduction;
+  const totalAdvance = pay.advRepayment + m.advInterestPaid - pay.advanceDeduction;
   const totalRepaid = totalCash - (m.passBook + pay.riskFund + totalAdvance + m.fine);
   const loanBase = pay.loanRepayment + pay.reducingInterest + m.registrationFee;
   const monthlyShare = totalRepaid > loanBase
@@ -189,7 +267,7 @@ function deriveLiveValues(m: MemberRow) {
   const sharesBalance = Math.max(
     0,
     (m.totalShares + monthlyShare + m.shareTransfer)
-    - (m.fineDeduction + m.shareDeduction + m.advDeduction + m.riskFundOut + m.shareOut + m.nonCashOut)
+    - (pay.fineDeduction + pay.shareDeduction + pay.advanceDeduction + pay.riskFundOut + m.shareOut + m.nonCashOut)
   );
   const loansBalance = Math.max(0, m.loanBalance - pay.loanRepayment);
 
@@ -234,14 +312,14 @@ function log(msg: string, type: 'default' | 'success' | 'warn' | 'error' = 'defa
 
 function resetLog() {
   logList.innerHTML = '';
-  logIcon.textContent = 'â³';
-  logTitle.textContent = 'Processingâ€¦';
+  logIcon.textContent = '...';
+  logTitle.textContent = 'Processing...';
   logCard.classList.remove('hidden');
 }
 
 function setLoading(loading: boolean) {
   processBtn.disabled = loading || !selectedFile;
-  btnText.textContent = loading ? 'Processingâ€¦' : 'Process File';
+  btnText.textContent = loading ? 'Processing...' : 'Process File';
   spinner.classList.toggle('hidden', !loading);
 }
 
@@ -465,6 +543,11 @@ async function processFile(file: File) {
 
         const nameCell = memberNameIdx !== undefined ? sheet[XLSX.utils.encode_cell({ r, c: memberNameIdx })] : null;
         const memberName = nameCell && nameCell.v ? String(nameCell.v).trim() : 'Unknown';
+        const excludedColorCols = [
+          memberNoColIdx,
+          memberNameIdx,
+        ].filter((idx): idx is number => idx !== undefined);
+        const hasAlertColor = rowHasAlertColor(sheet, r, range, excludedColorCols);
 
         const getNum = (cIdx?: number): number => {
           if (cIdx === undefined) return 0;
@@ -508,6 +591,7 @@ async function processFile(file: File) {
           memberNo,
           memberName,
           rowIdx: r,
+          hasAlertColor,
           expected,
           principal,
           installment,
@@ -578,6 +662,10 @@ function showContributionSection(members: MemberRow[]) {
       loanRepayment: 0,
       advRepayment: 0,
       riskFund: 0,
+      fineDeduction: m.fineDeduction,
+      shareDeduction: m.shareDeduction,
+      advanceDeduction: m.advDeduction,
+      riskFundOut: m.riskFundOut,
       reducingInterest: m.loanInterest,
       monthlyShare: m.monthlyShare,
       sharesBalance: m.sharesBalance,
@@ -586,6 +674,7 @@ function showContributionSection(members: MemberRow[]) {
 
     const tr = document.createElement('tr');
     tr.dataset.rowIdx = String(m.rowIdx);
+    if (m.hasAlertColor) tr.classList.add('alert-row');
 
     const tdMno = document.createElement('td');
     tdMno.className = 'td-mno';
@@ -604,6 +693,7 @@ function showContributionSection(members: MemberRow[]) {
       input.min = '0';
       input.step = '0.01';
       input.className = `amt-inp ${type}-inp`;
+      if (m.hasAlertColor) input.classList.add('alert-inp');
       input.placeholder = '0';
       input.addEventListener('input', () => {
         const val = parseFloat(input.value) || 0;
@@ -722,6 +812,10 @@ function openDetailPopup(m: MemberRow) {
   popupRiskFund.value = String(payData.riskFund);
   popupLoanRepayment.value = payData.loanRepayment ? payData.loanRepayment.toString() : '';
   popupAdvRepayment.value = payData.advRepayment ? payData.advRepayment.toString() : '';
+  popupFineDeduction.value = payData.fineDeduction ? payData.fineDeduction.toString() : '';
+  popupShareDeduction.value = payData.shareDeduction ? payData.shareDeduction.toString() : '';
+  popupAdvanceDeduction.value = payData.advanceDeduction ? payData.advanceDeduction.toString() : '';
+  popupRiskFundOut.value = payData.riskFundOut ? payData.riskFundOut.toString() : '';
 
   popupRiskFund.oninput = () => {
     let val = parseInt(popupRiskFund.value) || 0;
@@ -740,6 +834,30 @@ function openDetailPopup(m: MemberRow) {
   };
   popupAdvRepayment.oninput = () => {
     payData.advRepayment = parseFloat(popupAdvRepayment.value) || 0;
+    calcLiveValues(m);
+    if (activeRecordMember?.rowIdx === m.rowIdx) refreshRecordPopup(m);
+    autoSaveToSheet(m.rowIdx);
+  };
+  popupFineDeduction.oninput = () => {
+    payData.fineDeduction = parseFloat(popupFineDeduction.value) || 0;
+    calcLiveValues(m);
+    if (activeRecordMember?.rowIdx === m.rowIdx) refreshRecordPopup(m);
+    autoSaveToSheet(m.rowIdx);
+  };
+  popupShareDeduction.oninput = () => {
+    payData.shareDeduction = parseFloat(popupShareDeduction.value) || 0;
+    calcLiveValues(m);
+    if (activeRecordMember?.rowIdx === m.rowIdx) refreshRecordPopup(m);
+    autoSaveToSheet(m.rowIdx);
+  };
+  popupAdvanceDeduction.oninput = () => {
+    payData.advanceDeduction = parseFloat(popupAdvanceDeduction.value) || 0;
+    calcLiveValues(m);
+    if (activeRecordMember?.rowIdx === m.rowIdx) refreshRecordPopup(m);
+    autoSaveToSheet(m.rowIdx);
+  };
+  popupRiskFundOut.oninput = () => {
+    payData.riskFundOut = parseFloat(popupRiskFundOut.value) || 0;
     calcLiveValues(m);
     if (activeRecordMember?.rowIdx === m.rowIdx) refreshRecordPopup(m);
     autoSaveToSheet(m.rowIdx);
@@ -789,11 +907,26 @@ function autoSaveToSheet(rowIdx: number) {
   }
   const payment = paymentMap.get(rowIdx);
   if (!payment) return;
-  const { cash, paybill, bank, loanRepayment, advRepayment, riskFund } = payment;
+  const {
+    cash,
+    paybill,
+    bank,
+    loanRepayment,
+    advRepayment,
+    riskFund,
+    fineDeduction,
+    shareDeduction,
+    advanceDeduction,
+    riskFundOut,
+  } = payment;
   const vals: Record<PaymentCol, number> = {
     Cash: cash, Paybill: paybill, Bank: bank,
     LoanRepayment: loanRepayment, AdvanceRepayment: advRepayment,
-    RiskFund: riskFund
+    RiskFund: riskFund,
+    FineDeduction: fineDeduction,
+    ShareDeduction: shareDeduction,
+    AdvanceDeduction: advanceDeduction,
+    RiskFundOut: riskFundOut,
   };
   for (const col of PAYMENT_COLS) {
     const cIdx = colCache[col];
@@ -847,12 +980,27 @@ function applyContributions() {
   let writes = 0;
 
   for (const [rowIdx, payment] of paymentMap) {
-    const { cash, paybill, bank, loanRepayment, advRepayment, riskFund } = payment;
+    const {
+      cash,
+      paybill,
+      bank,
+      loanRepayment,
+      advRepayment,
+      riskFund,
+      fineDeduction,
+      shareDeduction,
+      advanceDeduction,
+      riskFundOut,
+    } = payment;
 
     const vals: Record<PaymentCol, number> = {
       Cash: cash, Paybill: paybill, Bank: bank,
       LoanRepayment: loanRepayment, AdvanceRepayment: advRepayment,
-      RiskFund: riskFund
+      RiskFund: riskFund,
+      FineDeduction: fineDeduction,
+      ShareDeduction: shareDeduction,
+      AdvanceDeduction: advanceDeduction,
+      RiskFundOut: riskFundOut,
     };
 
     for (const col of PAYMENT_COLS) {

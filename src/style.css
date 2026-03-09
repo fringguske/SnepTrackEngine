@@ -705,6 +705,14 @@ body {
   background: rgba(108, 99, 255, 0.06);
 }
 
+.contrib-table tbody tr.alert-row {
+  background: rgba(239, 68, 68, 0.08);
+}
+
+.contrib-table tbody tr.alert-row:hover {
+  background: rgba(239, 68, 68, 0.12);
+}
+
 .contrib-table tbody tr:last-child {
   border-bottom: none;
 }
@@ -749,6 +757,16 @@ body {
   background: var(--sticky-hover);
 }
 
+.contrib-table tbody tr.alert-row .td-mno {
+  color: #fca5a5;
+  text-decoration-color: rgba(252, 165, 165, 0.5);
+  background: rgba(56, 20, 26, 0.96);
+}
+
+.contrib-table tbody tr.alert-row:hover .td-mno {
+  background: rgba(84, 27, 35, 0.98);
+}
+
 .td-mno:hover {
   color: #7fffd4;
 }
@@ -768,6 +786,11 @@ body {
 
 .td-exp:hover {
   color: #c7d2fe;
+}
+
+.contrib-table tbody tr.alert-row .td-exp {
+  color: #fecaca;
+  text-decoration-color: rgba(254, 202, 202, 0.45);
 }
 
 /* Amount inputs */
@@ -808,6 +831,16 @@ body {
 .amt-inp.bank-inp:focus {
   border-color: rgba(245, 158, 11, 0.55);
   background: rgba(245, 158, 11, 0.07);
+}
+
+.alert-inp {
+  color: #fee2e2;
+  border-color: rgba(239, 68, 68, 0.28);
+  background: rgba(127, 29, 29, 0.12);
+}
+
+.alert-inp::placeholder {
+  color: rgba(254, 202, 202, 0.45);
 }
 
 /* Table footer */
