@@ -13,6 +13,7 @@ const PAYMENT_COLS = [
   'LoanRepayment',
   'AdvanceRepayment',
   'RiskFund',
+  'Fine',
   'FineDeduction',
   'ShareDeduction',
   'AdvanceDeduction',
@@ -65,7 +66,9 @@ const popupMemberName = document.getElementById('popupMemberName')! as HTMLParag
 const popupExpected = document.getElementById('popupExpected')! as HTMLSpanElement;
 const popupPrincipal = document.getElementById('popupPrincipal')! as HTMLSpanElement;
 const popupInstallment = document.getElementById('popupInstallment')! as HTMLSpanElement;
+const popupTotalShares = document.getElementById('popupTotalShares')! as HTMLSpanElement;
 const popupLoanBalance = document.getElementById('popupLoanBalance')! as HTMLSpanElement;
+const popupShareLoanDiff = document.getElementById('popupShareLoanDiff')! as HTMLSpanElement;
 const popupLoanInterest = document.getElementById('popupLoanInterest')! as HTMLSpanElement;
 const popupAdvBalance = document.getElementById('popupAdvBalance')! as HTMLSpanElement;
 const popupAdvInterest = document.getElementById('popupAdvInterest')! as HTMLSpanElement;
@@ -73,6 +76,7 @@ const popupMShare = document.getElementById('popupMShare')! as HTMLSpanElement;
 const popupLoanRepayment = document.getElementById('popupLoanRepayment')! as HTMLInputElement;
 const popupAdvRepayment = document.getElementById('popupAdvRepayment')! as HTMLInputElement;
 const popupRiskFund = document.getElementById('popupRiskFund')! as HTMLInputElement;
+const popupFine = document.getElementById('popupFine')! as HTMLInputElement;
 const popupFineDeduction = document.getElementById('popupFineDeduction')! as HTMLInputElement;
 const popupShareDeduction = document.getElementById('popupShareDeduction')! as HTMLInputElement;
 const popupAdvanceDeduction = document.getElementById('popupAdvanceDeduction')! as HTMLInputElement;
@@ -148,6 +152,7 @@ interface MemberRow {
 interface PaymentEntry {
   cash: number; paybill: number; bank: number;
   loanRepayment: number; advRepayment: number; riskFund: number;
+  fine: number;
   fineDeduction: number;
   shareDeduction: number;
   advanceDeduction: number;
@@ -178,6 +183,7 @@ const popupEditableInputs = [
   popupRiskFund,
   popupLoanRepayment,
   popupAdvRepayment,
+  popupFine,
   popupFineDeduction,
   popupShareDeduction,
   popupAdvanceDeduction,
@@ -269,7 +275,7 @@ function deriveLiveValues(m: MemberRow) {
 
   const totalCash = pay.cash + pay.paybill + pay.bank;
   const totalAdvance = pay.advRepayment + m.advInterestPaid - pay.advanceDeduction;
-  const totalRepaid = totalCash - (m.passBook + pay.riskFund + totalAdvance + m.fine);
+  const totalRepaid = totalCash - (m.passBook + pay.riskFund + totalAdvance + pay.fine);
   const loanBase = pay.loanRepayment + pay.reducingInterest + m.registrationFee;
   const monthlyShare = totalRepaid > loanBase
     ? totalRepaid - loanBase
@@ -685,6 +691,7 @@ function showContributionSection(members: MemberRow[]) {
       loanRepayment: 0,
       advRepayment: 0,
       riskFund: 0,
+      fine: m.fine,
       fineDeduction: m.fineDeduction,
       shareDeduction: m.shareDeduction,
       advanceDeduction: m.advDeduction,
@@ -841,7 +848,9 @@ function openDetailPopup(m: MemberRow) {
   popupExpected.textContent = `KSh ${fmt(m.expected)}`;
   popupPrincipal.textContent = m.principal > 0 ? fmt(m.principal) : MONEY_PLACEHOLDER;
   popupInstallment.textContent = m.installment > 0 ? fmt(m.installment) : MONEY_PLACEHOLDER;
+  popupTotalShares.textContent = m.totalShares > 0 ? fmt(m.totalShares) : MONEY_PLACEHOLDER;
   popupLoanBalance.textContent = m.loanBalance > 0 ? fmt(m.loanBalance) : MONEY_PLACEHOLDER;
+  popupShareLoanDiff.textContent = fmt(m.totalShares - m.loanBalance);
   popupLoanInterest.textContent = m.loanInterest > 0 ? fmt(m.loanInterest) : MONEY_PLACEHOLDER;
   popupAdvBalance.textContent = m.advanceBalance > 0 ? fmt(m.advanceBalance) : MONEY_PLACEHOLDER;
   popupAdvInterest.textContent = m.advanceInterest > 0 ? fmt(m.advanceInterest) : MONEY_PLACEHOLDER;
@@ -851,6 +860,7 @@ function openDetailPopup(m: MemberRow) {
   popupRiskFund.value = String(payData.riskFund);
   popupLoanRepayment.value = payData.loanRepayment ? payData.loanRepayment.toString() : '';
   popupAdvRepayment.value = payData.advRepayment ? payData.advRepayment.toString() : '';
+  popupFine.value = payData.fine ? payData.fine.toString() : '';
   popupFineDeduction.value = payData.fineDeduction ? payData.fineDeduction.toString() : '';
   popupShareDeduction.value = payData.shareDeduction ? payData.shareDeduction.toString() : '';
   popupAdvanceDeduction.value = payData.advanceDeduction ? payData.advanceDeduction.toString() : '';
@@ -874,6 +884,12 @@ function openDetailPopup(m: MemberRow) {
   };
   popupAdvRepayment.oninput = () => {
     payData.advRepayment = parseFloat(popupAdvRepayment.value) || 0;
+    calcLiveValues(m);
+    if (activeRecordMember?.rowIdx === m.rowIdx) refreshRecordPopup(m);
+    autoSaveToSheet(m.rowIdx);
+  };
+  popupFine.oninput = () => {
+    payData.fine = parseFloat(popupFine.value) || 0;
     calcLiveValues(m);
     if (activeRecordMember?.rowIdx === m.rowIdx) refreshRecordPopup(m);
     autoSaveToSheet(m.rowIdx);
@@ -954,6 +970,7 @@ function autoSaveToSheet(rowIdx: number) {
     loanRepayment,
     advRepayment,
     riskFund,
+    fine,
     fineDeduction,
     shareDeduction,
     advanceDeduction,
@@ -963,6 +980,7 @@ function autoSaveToSheet(rowIdx: number) {
     Cash: cash, Paybill: paybill, Bank: bank,
     LoanRepayment: loanRepayment, AdvanceRepayment: advRepayment,
     RiskFund: riskFund,
+    Fine: fine,
     FineDeduction: fineDeduction,
     ShareDeduction: shareDeduction,
     AdvanceDeduction: advanceDeduction,
@@ -1027,6 +1045,7 @@ function applyContributions() {
       loanRepayment,
       advRepayment,
       riskFund,
+      fine,
       fineDeduction,
       shareDeduction,
       advanceDeduction,
@@ -1037,6 +1056,7 @@ function applyContributions() {
       Cash: cash, Paybill: paybill, Bank: bank,
       LoanRepayment: loanRepayment, AdvanceRepayment: advRepayment,
       RiskFund: riskFund,
+      Fine: fine,
       FineDeduction: fineDeduction,
       ShareDeduction: shareDeduction,
       AdvanceDeduction: advanceDeduction,

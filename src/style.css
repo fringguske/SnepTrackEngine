@@ -1109,6 +1109,14 @@ body {
   background: #181929;
 }
 
+.popup-chip-wide {
+  grid-column: 1 / -1;
+}
+
+.popup-chip-accent {
+  background: linear-gradient(135deg, rgba(108, 99, 255, 0.18), rgba(62, 207, 207, 0.08));
+}
+
 .popup-chip-lbl {
   font-size: 0.64rem;
   color: var(--text-muted);

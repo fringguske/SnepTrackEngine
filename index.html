@@ -228,8 +228,16 @@
           <span class="popup-chip-val" id="popupInstallment">KSh 0.00</span>
         </div>
         <div class="popup-chip">
+          <span class="popup-chip-lbl">Total Shares</span>
+          <span class="popup-chip-val" id="popupTotalShares">KSh 0.00</span>
+        </div>
+        <div class="popup-chip">
           <span class="popup-chip-lbl">Loan Balance</span>
           <span class="popup-chip-val" id="popupLoanBalance">KSh 0.00</span>
+        </div>
+        <div class="popup-chip popup-chip-wide popup-chip-accent">
+          <span class="popup-chip-lbl">Diff (Total Shares - Loan Balance)</span>
+          <span class="popup-chip-val" id="popupShareLoanDiff">KSh 0.00</span>
         </div>
         <div class="popup-chip">
           <span class="popup-chip-lbl">Reducing Int. (1.5%)</span>
@@ -258,6 +266,10 @@
         <div class="popup-chip">
           <span class="popup-chip-lbl">Adv. Repayment</span>
           <input type="number" class="popup-amt-inp" id="popupAdvRepayment" placeholder="0" min="0" step="0.01" />
+        </div>
+        <div class="popup-chip">
+          <span class="popup-chip-lbl">Fine</span>
+          <input type="number" class="popup-amt-inp" id="popupFine" placeholder="0" min="0" step="0.01" />
         </div>
         <div class="popup-chip">
           <span class="popup-chip-lbl">Fine Deduction</span>
