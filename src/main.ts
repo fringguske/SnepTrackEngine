@@ -368,48 +368,72 @@ function shiftFormula(formula: string, srcRow: number, tgtRow: number): string {
   );
 }
 
-function getInstallment(principal: number): number {
-  if (principal <= 0) return 0;
-  if (principal <= 5000) return 335;
-  if (principal <= 10000) return 500;
-  if (principal <= 15000) return 750;
-  if (principal <= 20000) return 1000;
-  if (principal <= 25000) return 1250;
-  if (principal <= 30000) return 1500;
-  if (principal <= 35000) return 1500;
-  if (principal <= 40000) return 1600;
-  if (principal <= 45000) return 1800;
-  if (principal <= 50000) return 2000;
-  if (principal <= 55000) return 2200;
-  if (principal <= 60000) return 2400;
-  if (principal <= 65000) return 2600;
-  if (principal <= 70000) return 2800;
-  if (principal <= 75000) return 3000;
-  if (principal <= 80000) return 3200;
-  if (principal <= 85000) return 3400;
-  if (principal <= 90000) return 3600;
-  if (principal <= 95000) return 3800;
-  if (principal <= 100000) return 4000;
-  if (principal <= 120000) return 4800;
-  if (principal <= 140000) return 5600;
-  if (principal <= 160000) return 6400;
-  if (principal <= 180000) return 7200;
-  if (principal <= 200000) return 8000;
-  if (principal <= 250000) return 10000;
-  if (principal <= 300000) return 12000;
-  if (principal <= 350000) return 14000;
-  if (principal <= 400000) return 16000;
-  if (principal <= 450000) return 18000;
-  if (principal <= 500000) return 20000;
-  if (principal <= 550000) return 22000;
-  if (principal <= 600000) return 24000;
-  if (principal <= 650000) return 26000;
-  if (principal <= 700000) return 28000;
-  if (principal <= 750000) return 30000;
-  if (principal <= 800000) return 32000;
-  if (principal <= 850000) return 34000;
-  if (principal <= 900000) return 36000;
-  return 36000;
+type LoanRepaymentBracket = {
+  minPrincipal: number;
+  maxPrincipal: number;
+  period: number;
+  installment: number;
+  interest: number;
+  savings: number;
+  total: number;
+};
+
+// Loan repayment schedule (scripted directly from the provided CSV values).
+const LOAN_REPAYMENT_SCHEDULE: LoanRepaymentBracket[] = [
+  { minPrincipal: 1, maxPrincipal: 5000, period: 15, installment: 335, interest: 75, savings: 550, total: 960 },
+  { minPrincipal: 5001, maxPrincipal: 10000, period: 20, installment: 500, interest: 150, savings: 550, total: 1200 },
+  { minPrincipal: 10001, maxPrincipal: 15000, period: 20, installment: 750, interest: 225, savings: 550, total: 1525 },
+  { minPrincipal: 15001, maxPrincipal: 20000, period: 20, installment: 1000, interest: 300, savings: 550, total: 1850 },
+  { minPrincipal: 20001, maxPrincipal: 25000, period: 20, installment: 1250, interest: 375, savings: 550, total: 2175 },
+  { minPrincipal: 25001, maxPrincipal: 30000, period: 20, installment: 1500, interest: 450, savings: 550, total: 2500 },
+  { minPrincipal: 30001, maxPrincipal: 35000, period: 24, installment: 1500, interest: 525, savings: 550, total: 2575 },
+  { minPrincipal: 35001, maxPrincipal: 40000, period: 25, installment: 1600, interest: 600, savings: 550, total: 2750 },
+  { minPrincipal: 40001, maxPrincipal: 45000, period: 25, installment: 1800, interest: 675, savings: 550, total: 3025 },
+  { minPrincipal: 45001, maxPrincipal: 50000, period: 25, installment: 2000, interest: 750, savings: 550, total: 3300 },
+  { minPrincipal: 50001, maxPrincipal: 55000, period: 25, installment: 2200, interest: 825, savings: 550, total: 3575 },
+  { minPrincipal: 55001, maxPrincipal: 60000, period: 25, installment: 2400, interest: 900, savings: 550, total: 3850 },
+  { minPrincipal: 60001, maxPrincipal: 65000, period: 25, installment: 2600, interest: 975, savings: 550, total: 4125 },
+  { minPrincipal: 65001, maxPrincipal: 70000, period: 25, installment: 2800, interest: 1050, savings: 550, total: 4400 },
+  { minPrincipal: 70001, maxPrincipal: 75000, period: 25, installment: 3000, interest: 1125, savings: 550, total: 4675 },
+  { minPrincipal: 75001, maxPrincipal: 80000, period: 25, installment: 3200, interest: 1200, savings: 550, total: 4950 },
+  { minPrincipal: 80001, maxPrincipal: 85000, period: 25, installment: 3400, interest: 1275, savings: 550, total: 5225 },
+  { minPrincipal: 85001, maxPrincipal: 90000, period: 25, installment: 3600, interest: 1350, savings: 550, total: 5500 },
+  { minPrincipal: 90001, maxPrincipal: 95000, period: 25, installment: 3800, interest: 1425, savings: 550, total: 5775 },
+  { minPrincipal: 95001, maxPrincipal: 100000, period: 25, installment: 4000, interest: 1500, savings: 550, total: 6050 },
+  { minPrincipal: 100001, maxPrincipal: 120000, period: 25, installment: 4800, interest: 1800, savings: 550, total: 7150 },
+  { minPrincipal: 120001, maxPrincipal: 140000, period: 25, installment: 5600, interest: 2100, savings: 550, total: 8250 },
+  { minPrincipal: 140001, maxPrincipal: 160000, period: 25, installment: 6400, interest: 2400, savings: 550, total: 9350 },
+  { minPrincipal: 160001, maxPrincipal: 180000, period: 25, installment: 7200, interest: 2700, savings: 550, total: 10450 },
+  { minPrincipal: 180001, maxPrincipal: 200000, period: 25, installment: 8000, interest: 3000, savings: 550, total: 11550 },
+  { minPrincipal: 200001, maxPrincipal: 250000, period: 25, installment: 10000, interest: 3750, savings: 1050, total: 14800 },
+  { minPrincipal: 250001, maxPrincipal: 300000, period: 25, installment: 12000, interest: 4500, savings: 1050, total: 17550 },
+  { minPrincipal: 300001, maxPrincipal: 350000, period: 25, installment: 14000, interest: 5250, savings: 1050, total: 20300 },
+  { minPrincipal: 350001, maxPrincipal: 400000, period: 30, installment: 16000, interest: 6000, savings: 1050, total: 23050 },
+  { minPrincipal: 400001, maxPrincipal: 450000, period: 25, installment: 18000, interest: 6750, savings: 1050, total: 25800 },
+  { minPrincipal: 450001, maxPrincipal: 480000, period: 25, installment: 20000, interest: 7500, savings: 1050, total: 28550 },
+  { minPrincipal: 500001, maxPrincipal: 550000, period: 25, installment: 22000, interest: 8250, savings: 1050, total: 31300 },
+  { minPrincipal: 550001, maxPrincipal: 600000, period: 25, installment: 24000, interest: 9000, savings: 1050, total: 34050 },
+  { minPrincipal: 600001, maxPrincipal: 650000, period: 25, installment: 26000, interest: 9750, savings: 1050, total: 36800 },
+  { minPrincipal: 650001, maxPrincipal: 700000, period: 25, installment: 28000, interest: 10500, savings: 1050, total: 39550 },
+  { minPrincipal: 700001, maxPrincipal: 750000, period: 25, installment: 30000, interest: 11250, savings: 1050, total: 42300 },
+  { minPrincipal: 750001, maxPrincipal: 800000, period: 25, installment: 32000, interest: 12000, savings: 1050, total: 45050 },
+  { minPrincipal: 800001, maxPrincipal: 850000, period: 25, installment: 34000, interest: 12750, savings: 1050, total: 47800 },
+  { minPrincipal: 850001, maxPrincipal: 900000, period: 25, installment: 36000, interest: 13500, savings: 1050, total: 50550 },
+];
+
+const NO_LOAN_SAVINGS = 500;
+const NO_LOAN_RISK_FUND = 50;
+const NO_LOAN_SAVINGS_RISK = NO_LOAN_SAVINGS + NO_LOAN_RISK_FUND;
+
+function getLoanRepaymentBracket(principal: number): LoanRepaymentBracket | null {
+  if (principal <= 0) return null;
+  const p = Math.round(principal);
+  let bestLower: LoanRepaymentBracket | null = null;
+  for (const bracket of LOAN_REPAYMENT_SCHEDULE) {
+    if (p >= bracket.minPrincipal && p <= bracket.maxPrincipal) return bracket;
+    if (bracket.maxPrincipal < p) bestLower = bracket;
+  }
+  return bestLower ?? LOAN_REPAYMENT_SCHEDULE[0];
 }
 
 // Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ File selection Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
@@ -587,11 +611,14 @@ async function processFile(file: File) {
         };
 
         const principal = getNum(pLoanCol);
-        const installment = getInstallment(principal);
         const loanBalance = getNum(lBalCol);
-        const loanInterest = Math.round(loanBalance * 0.015);
         const advanceBalance = getNum(aBalCol);
         const advanceInterest = Math.round(advanceBalance * 0.10);
+        const hasLoan = loanBalance > 0;
+        const loanBracket = hasLoan ? getLoanRepaymentBracket(principal) : null;
+        const installment = loanBracket?.installment ?? 0;
+        const reducingInterest = hasLoan ? Math.round(loanBalance * 0.015) : 0;
+        const loanInterest = reducingInterest; // UI label is "Reducing Int. (1.5%)"
         const monthlyShare = getNum(mShareCol); // Extracted from Excel
         const totalShares = getNum(totalSharesCol);
         const shareTransfer = getNum(shareTransferCol);
@@ -609,13 +636,27 @@ async function processFile(file: File) {
 
         const advInterestPaid = getNum(colMap['AdvanceInterestPaid']);
         const advDeduction = getNum(colMap['AdvanceDeduction']);
-        const loanInterestPaid = Math.round(loanBalance * 0.015);
+        const loanInterestPaid = reducingInterest;
         const registrationFee = getNum(colMap['RegistrationFee']);
         const passBook = getNum(colMap['PassBook']);
         const fine = getNum(colMap['Fine']);
 
-        // The expected calculation uses constant 500 for share and 50 for risk fund.
-        const expected = installment + loanInterest + advanceBalance + advanceInterest + 500 + 50;
+        // Expected:
+        // - If member has a loan:
+        //   - If remaining loan balance is below the scheduled installment, charge:
+        //     loanBalance + 1.5% (reducing interest) + 500 savings + 50 risk fund.
+        //   - Otherwise, charge the schedule total (already includes savings/risk fund component).
+        //   - Then add advance + 10% advance interest (if any).
+        // - If member has no loan: advance + 10% advance interest (if any) + 500 savings + 50 risk fund.
+        let loanBaseExpected = NO_LOAN_SAVINGS_RISK;
+        if (hasLoan) {
+          if (loanBracket && loanBalance >= installment) {
+            loanBaseExpected = loanBracket.total;
+          } else {
+            loanBaseExpected = NO_LOAN_SAVINGS_RISK + loanBalance + reducingInterest;
+          }
+        }
+        const expected = loanBaseExpected + advanceBalance + advanceInterest;
 
         collected.push({
           memberNo,
@@ -1114,4 +1155,3 @@ window.addEventListener('beforeunload', (e) => {
     e.returnValue = ''; // Standard way to trigger the confirmation dialog
   }
 });
-
