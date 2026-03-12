@@ -113,6 +113,7 @@ let selectedFile: File | null = null;
 let processedWorkbook: XLSX.WorkBook | null = null;
 let processedSheetName = '';
 let outputName = 'modified.xlsx';
+let activeDraftKey: string | null = null;
 
 interface MemberRow {
   memberNo: string | number;
@@ -169,6 +170,104 @@ interface PaymentEntry {
 const paymentMap = new Map<number, PaymentEntry>();
 const memberRowMap = new Map<number, MemberRow>();
 let activeRecordMember: MemberRow | null = null;
+
+type DraftPaymentFields = Pick<PaymentEntry,
+  'cash' | 'paybill' | 'bank' |
+  'loanRepayment' | 'advRepayment' | 'riskFund' |
+  'fine' | 'fineDeduction' | 'shareDeduction' | 'advanceDeduction' | 'riskFundOut'
+>;
+type DraftPayloadV1 = {
+  version: 1;
+  file: { name: string; size: number; lastModified: number };
+  savedAt: number;
+  entries: Record<string, DraftPaymentFields>;
+};
+
+const DRAFT_STORAGE_PREFIX = 'snepbotv1:draft:v1:';
+let draftSaveTimer: number | null = null;
+
+function getFileFingerprint(file: File): string {
+  return `${file.name}|${file.size}|${file.lastModified}`;
+}
+
+function getDraftStorageKeyForFile(file: File): string {
+  return `${DRAFT_STORAGE_PREFIX}${getFileFingerprint(file)}`;
+}
+
+function safeParseDraft(raw: string | null): DraftPayloadV1 | null {
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw) as DraftPayloadV1;
+    if (!parsed || parsed.version !== 1 || typeof parsed.entries !== 'object') return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+function readActiveDraft(): DraftPayloadV1 | null {
+  if (!activeDraftKey) return null;
+  return safeParseDraft(localStorage.getItem(activeDraftKey));
+}
+
+function schedulePersistDraft() {
+  if (!activeDraftKey || !selectedFile) return;
+  if (draftSaveTimer) window.clearTimeout(draftSaveTimer);
+  draftSaveTimer = window.setTimeout(() => {
+    draftSaveTimer = null;
+    persistDraftNow();
+  }, 250);
+}
+
+function persistDraftNow() {
+  if (!activeDraftKey || !selectedFile) return;
+
+  const entries: Record<string, DraftPaymentFields> = {};
+  for (const [rowIdx, pay] of paymentMap.entries()) {
+    const member = memberRowMap.get(rowIdx);
+    if (!member) continue;
+    const key = String(member.memberNo).trim();
+
+    // Store only meaningful edits to keep localStorage small.
+    const hasAny =
+      pay.cash !== 0 || pay.paybill !== 0 || pay.bank !== 0 ||
+      pay.loanRepayment !== 0 || pay.advRepayment !== 0 || pay.riskFund !== 0 ||
+      pay.fine !== member.fine ||
+      pay.fineDeduction !== member.fineDeduction ||
+      pay.shareDeduction !== member.shareDeduction ||
+      pay.advanceDeduction !== member.advDeduction ||
+      pay.riskFundOut !== member.riskFundOut;
+
+    if (!hasAny) continue;
+
+    entries[key] = {
+      cash: pay.cash,
+      paybill: pay.paybill,
+      bank: pay.bank,
+      loanRepayment: pay.loanRepayment,
+      advRepayment: pay.advRepayment,
+      riskFund: pay.riskFund,
+      fine: pay.fine,
+      fineDeduction: pay.fineDeduction,
+      shareDeduction: pay.shareDeduction,
+      advanceDeduction: pay.advanceDeduction,
+      riskFundOut: pay.riskFundOut,
+    };
+  }
+
+  const payload: DraftPayloadV1 = {
+    version: 1,
+    file: { name: selectedFile.name, size: selectedFile.size, lastModified: selectedFile.lastModified },
+    savedAt: Date.now(),
+    entries,
+  };
+
+  try {
+    localStorage.setItem(activeDraftKey, JSON.stringify(payload));
+  } catch {
+    // Best-effort; ignore quota errors.
+  }
+}
 
 // Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ Helpers Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 function formatBytes(bytes: number): string {
@@ -440,6 +539,7 @@ function getLoanRepaymentBracket(principal: number): LoanRepaymentBracket | null
 function acceptFile(file: File) {
   if (!file.name.match(/\.xlsx?$/i)) { alert('Please upload an Excel file (.xlsx or .xls).'); return; }
   selectedFile = file;
+  activeDraftKey = getDraftStorageKeyForFile(file);
   processedWorkbook = null;
   formulaBanner.classList.add('hidden');
   step2Section.classList.add('hidden');
@@ -454,6 +554,7 @@ function acceptFile(file: File) {
 function clearFile() {
   selectedFile = null;
   processedWorkbook = null;
+  activeDraftKey = null;
   paymentMap.clear();
   memberRowMap.clear();
   activeRecordMember = null;
@@ -726,9 +827,12 @@ function showContributionSection(members: MemberRow[]) {
   memberRowMap.clear();
   activeRecordMember = null;
 
+  const draft = readActiveDraft();
+  let restoredRows = 0;
+
   members.forEach((m) => {
     memberRowMap.set(m.rowIdx, m);
-    paymentMap.set(m.rowIdx, {
+    const paySeed: PaymentEntry = {
       cash: 0,
       paybill: 0,
       bank: 0,
@@ -744,7 +848,27 @@ function showContributionSection(members: MemberRow[]) {
       monthlyShare: m.monthlyShare,
       sharesBalance: m.sharesBalance,
       loansBalance: m.loansBalance,
-    });
+    };
+
+    const draftEntry = draft?.entries?.[String(m.memberNo).trim()];
+    if (draftEntry) {
+      paySeed.cash = draftEntry.cash ?? paySeed.cash;
+      paySeed.paybill = draftEntry.paybill ?? paySeed.paybill;
+      paySeed.bank = draftEntry.bank ?? paySeed.bank;
+      paySeed.loanRepayment = draftEntry.loanRepayment ?? paySeed.loanRepayment;
+      paySeed.advRepayment = draftEntry.advRepayment ?? paySeed.advRepayment;
+      paySeed.riskFund = draftEntry.riskFund ?? paySeed.riskFund;
+      paySeed.fine = draftEntry.fine ?? paySeed.fine;
+      paySeed.fineDeduction = draftEntry.fineDeduction ?? paySeed.fineDeduction;
+      paySeed.shareDeduction = draftEntry.shareDeduction ?? paySeed.shareDeduction;
+      paySeed.advanceDeduction = draftEntry.advanceDeduction ?? paySeed.advanceDeduction;
+      paySeed.riskFundOut = draftEntry.riskFundOut ?? paySeed.riskFundOut;
+      restoredRows++;
+    }
+
+    paymentMap.set(m.rowIdx, paySeed);
+
+    if (draftEntry) autoSaveToSheet(m.rowIdx);
 
     const tr = document.createElement('tr');
     tr.dataset.rowIdx = String(m.rowIdx);
@@ -785,6 +909,11 @@ function showContributionSection(members: MemberRow[]) {
       input.disabled = m.isInactive;
       input.placeholder = '0';
       if (m.isInactive) input.title = 'Inactive members cannot be edited.';
+
+      const pay = paymentMap.get(m.rowIdx)!;
+      const seeded = pay[type];
+      input.value = seeded ? String(seeded) : '';
+
       input.addEventListener('input', () => {
         const val = parseFloat(input.value) || 0;
         const pay = paymentMap.get(m.rowIdx)!;
@@ -802,6 +931,7 @@ function showContributionSection(members: MemberRow[]) {
         updateFooterTotals();
         if (activeRecordMember?.rowIdx === m.rowIdx) refreshRecordPopup(m);
         autoSaveToSheet(m.rowIdx);
+        schedulePersistDraft();
       });
       td.appendChild(input);
       return td;
@@ -823,6 +953,7 @@ function showContributionSection(members: MemberRow[]) {
   contribSummary.classList.remove('hidden');
 
   updateFooterTotals();
+  if (restoredRows > 0) schedulePersistDraft();
 
   step2Section.classList.remove('hidden');
   setTimeout(() => step2Section.scrollIntoView({ behavior: 'smooth', block: 'start' }), 150);
@@ -918,6 +1049,7 @@ function openDetailPopup(m: MemberRow) {
     calcLiveValues(m);
     if (activeRecordMember?.rowIdx === m.rowIdx) refreshRecordPopup(m);
     autoSaveToSheet(m.rowIdx);
+    schedulePersistDraft();
   };
 
   popupLoanRepayment.oninput = () => {
@@ -925,42 +1057,49 @@ function openDetailPopup(m: MemberRow) {
     calcLiveValues(m);
     if (activeRecordMember?.rowIdx === m.rowIdx) refreshRecordPopup(m);
     autoSaveToSheet(m.rowIdx);
+    schedulePersistDraft();
   };
   popupAdvRepayment.oninput = () => {
     payData.advRepayment = parseFloat(popupAdvRepayment.value) || 0;
     calcLiveValues(m);
     if (activeRecordMember?.rowIdx === m.rowIdx) refreshRecordPopup(m);
     autoSaveToSheet(m.rowIdx);
+    schedulePersistDraft();
   };
   popupFine.oninput = () => {
     payData.fine = parseFloat(popupFine.value) || 0;
     calcLiveValues(m);
     if (activeRecordMember?.rowIdx === m.rowIdx) refreshRecordPopup(m);
     autoSaveToSheet(m.rowIdx);
+    schedulePersistDraft();
   };
   popupFineDeduction.oninput = () => {
     payData.fineDeduction = parseFloat(popupFineDeduction.value) || 0;
     calcLiveValues(m);
     if (activeRecordMember?.rowIdx === m.rowIdx) refreshRecordPopup(m);
     autoSaveToSheet(m.rowIdx);
+    schedulePersistDraft();
   };
   popupShareDeduction.oninput = () => {
     payData.shareDeduction = parseFloat(popupShareDeduction.value) || 0;
     calcLiveValues(m);
     if (activeRecordMember?.rowIdx === m.rowIdx) refreshRecordPopup(m);
     autoSaveToSheet(m.rowIdx);
+    schedulePersistDraft();
   };
   popupAdvanceDeduction.oninput = () => {
     payData.advanceDeduction = parseFloat(popupAdvanceDeduction.value) || 0;
     calcLiveValues(m);
     if (activeRecordMember?.rowIdx === m.rowIdx) refreshRecordPopup(m);
     autoSaveToSheet(m.rowIdx);
+    schedulePersistDraft();
   };
   popupRiskFundOut.oninput = () => {
     payData.riskFundOut = parseFloat(popupRiskFundOut.value) || 0;
     calcLiveValues(m);
     if (activeRecordMember?.rowIdx === m.rowIdx) refreshRecordPopup(m);
     autoSaveToSheet(m.rowIdx);
+    schedulePersistDraft();
   };
 
   calcLiveValues(m); // initial paint for computed popup rows
