@@ -539,6 +539,19 @@ body {
   margin-top: 2px;
 }
 
+.banner-meta {
+  display: inline-block;
+  margin-top: 8px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(93, 223, 142, 0.35);
+  background: rgba(93, 223, 142, 0.08);
+  color: rgba(232, 234, 246, 0.9);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
 .banner-arrow {
   flex-shrink: 0;
   color: #5ddf8e;

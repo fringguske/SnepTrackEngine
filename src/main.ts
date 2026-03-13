@@ -43,6 +43,7 @@ const logIcon = document.getElementById('logIcon')! as HTMLSpanElement;
 const logTitle = document.getElementById('logTitle')! as HTMLSpanElement;
 const logList = document.getElementById('logList')! as HTMLUListElement;
 const formulaBanner = document.getElementById('formulaBanner')! as HTMLDivElement;
+const bannerMonthPeriod = document.getElementById('bannerMonthPeriod')! as HTMLParagraphElement;
 
 // Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ DOM refs Ã¢â‚¬â€ Step 2 Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 const step2Section = document.getElementById('step2Section')! as HTMLElement;
@@ -542,6 +543,7 @@ function acceptFile(file: File) {
   activeDraftKey = getDraftStorageKeyForFile(file);
   processedWorkbook = null;
   formulaBanner.classList.add('hidden');
+  bannerMonthPeriod.classList.add('hidden');
   step2Section.classList.add('hidden');
   logCard.classList.add('hidden');
   setStepActive(1);
@@ -562,6 +564,7 @@ function clearFile() {
   fileInfo.classList.add('hidden');
   processBtn.disabled = true;
   formulaBanner.classList.add('hidden');
+  bannerMonthPeriod.classList.add('hidden');
   logCard.classList.add('hidden');
   step2Section.classList.add('hidden');
   memberTableBody.innerHTML = '';
@@ -589,6 +592,7 @@ async function processFile(file: File) {
   setLoading(true);
   resetLog();
   formulaBanner.classList.add('hidden');
+  bannerMonthPeriod.classList.add('hidden');
   step2Section.classList.add('hidden');
   closeDetailPopup();
   closeRecordPopup();
@@ -663,6 +667,27 @@ async function processFile(file: File) {
     }
     sheet['!ref'] = XLSX.utils.encode_range(range);
     log(`Done! ${totalCopied} cells updated.`, 'success');
+
+    // Surface just one MonthPeriod value (we don't need to show all of them).
+    // We pick a random non-empty value from the MonthPeriod column (if present).
+    const monthPeriodCol = getHeaderIndex(colMap, ['MonthPeriod', 'Month Period', 'Month_Period', 'Month-Period']);
+    const monthPeriodCandidates: string[] = [];
+    if (monthPeriodCol !== undefined) {
+      for (let r = 1; r <= lastRow; r++) {
+        const c = sheet[XLSX.utils.encode_cell({ r, c: monthPeriodCol })] as XLSX.CellObject | undefined;
+        const raw = c?.w ?? c?.v;
+        const s = raw === undefined || raw === null ? '' : String(raw).trim();
+        if (s) monthPeriodCandidates.push(s);
+      }
+    }
+    const uniqueMonthPeriods = Array.from(new Set(monthPeriodCandidates));
+    if (uniqueMonthPeriods.length > 0) {
+      const picked = uniqueMonthPeriods[Math.floor(Math.random() * uniqueMonthPeriods.length)];
+      bannerMonthPeriod.textContent = `Month Period: ${picked}`;
+      bannerMonthPeriod.classList.remove('hidden');
+    } else {
+      bannerMonthPeriod.classList.add('hidden');
+    }
 
     // Ã¢â€â‚¬Ã¢â€â‚¬ Collect member rows with breakdown Ã¢â€â‚¬Ã¢â€â‚¬
     const memberNoColIdx = colMap['MemberNo'];
