@@ -1160,6 +1160,36 @@ body {
   background: linear-gradient(135deg, rgba(108, 99, 255, 0.18), rgba(62, 207, 207, 0.08));
 }
 
+.popup-more-btn {
+  width: calc(100% - 32px);
+  margin: 10px 16px 0;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(232, 234, 246, 0.9);
+  font-family: inherit;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition: background var(--transition), border-color var(--transition), transform var(--transition);
+}
+
+.popup-more-btn:hover {
+  background: rgba(108, 99, 255, 0.08);
+  border-color: rgba(108, 99, 255, 0.25);
+  transform: translateY(-1px);
+}
+
+.popup-more-btn:active {
+  transform: translateY(0);
+}
+
+.popup-more-panel {
+  margin-top: 10px;
+}
+
 .popup-chip-lbl {
   font-size: 0.64rem;
   color: var(--text-muted);

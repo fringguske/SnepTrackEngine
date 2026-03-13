@@ -21,6 +21,9 @@ const PAYMENT_COLS = [
   'ShareDeduction',
   'AdvanceDeduction',
   'RiskFundOut',
+  'RegFee',
+  'RegistrationFee',
+  'PassBook',
 ] as const;
 type PaymentCol = typeof PAYMENT_COLS[number];
 const LIVE_RESULT_COLS = ['MonthlyShare', 'Shares C/F', 'Loans C/F', 'TotalCash', 'TotalAdvance', 'Total RePaid'] as const;
@@ -85,6 +88,10 @@ const popupFineDeduction = document.getElementById('popupFineDeduction')! as HTM
 const popupShareDeduction = document.getElementById('popupShareDeduction')! as HTMLInputElement;
 const popupAdvanceDeduction = document.getElementById('popupAdvanceDeduction')! as HTMLInputElement;
 const popupRiskFundOut = document.getElementById('popupRiskFundOut')! as HTMLInputElement;
+const popupMoreBtn = document.getElementById('popupMoreBtn')! as HTMLButtonElement;
+const popupMorePanel = document.getElementById('popupMorePanel')! as HTMLDivElement;
+const popupRegFee = document.getElementById('popupRegFee')! as HTMLInputElement;
+const popupPassBook = document.getElementById('popupPassBook')! as HTMLInputElement;
 const popupTotalCash = document.getElementById('popupTotalCash')! as HTMLSpanElement;
 const popupTotalAdvance = document.getElementById('popupTotalAdvance')! as HTMLSpanElement;
 const popupTotalRepaid = document.getElementById('popupTotalRepaid')! as HTMLSpanElement;
@@ -157,6 +164,8 @@ interface MemberRow {
 interface PaymentEntry {
   cash: number; paybill: number; bank: number;
   loanRepayment: number; advRepayment: number; riskFund: number;
+  regFee: number;
+  passBook: number;
   fine: number;
   fineDeduction: number;
   shareDeduction: number;
@@ -175,7 +184,8 @@ let activeRecordMember: MemberRow | null = null;
 type DraftPaymentFields = Pick<PaymentEntry,
   'cash' | 'paybill' | 'bank' |
   'loanRepayment' | 'advRepayment' | 'riskFund' |
-  'fine' | 'fineDeduction' | 'shareDeduction' | 'advanceDeduction' | 'riskFundOut'
+  'fine' | 'fineDeduction' | 'shareDeduction' | 'advanceDeduction' | 'riskFundOut' |
+  'regFee' | 'passBook'
 >;
 type DraftPayloadV1 = {
   version: 1;
@@ -237,7 +247,9 @@ function persistDraftNow() {
       pay.fineDeduction !== member.fineDeduction ||
       pay.shareDeduction !== member.shareDeduction ||
       pay.advanceDeduction !== member.advDeduction ||
-      pay.riskFundOut !== member.riskFundOut;
+      pay.riskFundOut !== member.riskFundOut ||
+      pay.regFee !== member.registrationFee ||
+      pay.passBook !== member.passBook;
 
     if (!hasAny) continue;
 
@@ -253,6 +265,8 @@ function persistDraftNow() {
       shareDeduction: pay.shareDeduction,
       advanceDeduction: pay.advanceDeduction,
       riskFundOut: pay.riskFundOut,
+      regFee: pay.regFee,
+      passBook: pay.passBook,
     };
   }
 
@@ -291,6 +305,8 @@ const popupEditableInputs = [
   popupShareDeduction,
   popupAdvanceDeduction,
   popupRiskFundOut,
+  popupRegFee,
+  popupPassBook,
 ];
 
 function syncBodyScrollLock() {
@@ -378,11 +394,11 @@ function deriveLiveValues(m: MemberRow) {
 
   const totalCash = pay.cash + pay.paybill + pay.bank;
   const totalAdvance = pay.advRepayment + m.advInterestPaid - pay.advanceDeduction;
-  const totalRepaid = totalCash - (m.passBook + pay.riskFund + totalAdvance + pay.fine);
-  const loanBase = pay.loanRepayment + pay.reducingInterest + m.registrationFee;
+  const totalRepaid = totalCash - (pay.passBook + pay.riskFund + totalAdvance + pay.fine);
+  const loanBase = pay.loanRepayment + pay.reducingInterest + pay.regFee;
   const monthlyShare = totalRepaid > loanBase
     ? totalRepaid - loanBase
-    : totalRepaid - m.registrationFee;
+    : totalRepaid - pay.regFee;
   const sharesBalance = Math.max(
     0,
     (m.totalShares + monthlyShare + m.shareTransfer)
@@ -763,8 +779,8 @@ async function processFile(file: File) {
         const advInterestPaid = getNum(colMap['AdvanceInterestPaid']);
         const advDeduction = getNum(colMap['AdvanceDeduction']);
         const loanInterestPaid = reducingInterest;
-        const registrationFee = getNum(colMap['RegistrationFee']);
-        const passBook = getNum(colMap['PassBook']);
+        const registrationFee = getNum(getHeaderIndex(colMap, ['RegFee', 'RegistrationFee', 'Reg Fee', 'Reg_Fee']));
+        const passBook = getNum(getHeaderIndex(colMap, ['PassBook', 'Pass Book', 'Pass_Book']));
         const fine = getNum(colMap['Fine']);
 
         // Expected:
@@ -864,6 +880,8 @@ function showContributionSection(members: MemberRow[]) {
       loanRepayment: 0,
       advRepayment: 0,
       riskFund: 0,
+      regFee: m.registrationFee,
+      passBook: m.passBook,
       fine: m.fine,
       fineDeduction: m.fineDeduction,
       shareDeduction: m.shareDeduction,
@@ -888,6 +906,8 @@ function showContributionSection(members: MemberRow[]) {
       paySeed.shareDeduction = draftEntry.shareDeduction ?? paySeed.shareDeduction;
       paySeed.advanceDeduction = draftEntry.advanceDeduction ?? paySeed.advanceDeduction;
       paySeed.riskFundOut = draftEntry.riskFundOut ?? paySeed.riskFundOut;
+      paySeed.regFee = (draftEntry as Partial<DraftPaymentFields>).regFee ?? paySeed.regFee;
+      paySeed.passBook = (draftEntry as Partial<DraftPaymentFields>).passBook ?? paySeed.passBook;
       restoredRows++;
     }
 
@@ -1066,7 +1086,17 @@ function openDetailPopup(m: MemberRow) {
   popupShareDeduction.value = payData.shareDeduction ? payData.shareDeduction.toString() : '';
   popupAdvanceDeduction.value = payData.advanceDeduction ? payData.advanceDeduction.toString() : '';
   popupRiskFundOut.value = payData.riskFundOut ? payData.riskFundOut.toString() : '';
+  popupRegFee.value = payData.regFee ? payData.regFee.toString() : '';
+  popupPassBook.value = payData.passBook ? payData.passBook.toString() : '';
   setDetailPopupEditableState(!m.isInactive);
+
+  const setMoreOpen = (open: boolean) => {
+    popupMorePanel.classList.toggle('hidden', !open);
+    popupMoreBtn.textContent = open ? 'Less' : 'More';
+    popupMoreBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+  };
+  setMoreOpen(payData.regFee > 0 || payData.passBook > 0);
+  popupMoreBtn.onclick = () => setMoreOpen(popupMorePanel.classList.contains('hidden'));
 
   // Conditionally hide chips that don't apply, to reduce clutter on mobile.
   // Always show: advance balance, principal loan, loan balance (even when 0).
@@ -1146,6 +1176,20 @@ function openDetailPopup(m: MemberRow) {
     autoSaveToSheet(m.rowIdx);
     schedulePersistDraft();
   };
+  popupRegFee.oninput = () => {
+    payData.regFee = parseFloat(popupRegFee.value) || 0;
+    calcLiveValues(m);
+    if (activeRecordMember?.rowIdx === m.rowIdx) refreshRecordPopup(m);
+    autoSaveToSheet(m.rowIdx);
+    schedulePersistDraft();
+  };
+  popupPassBook.oninput = () => {
+    payData.passBook = parseFloat(popupPassBook.value) || 0;
+    calcLiveValues(m);
+    if (activeRecordMember?.rowIdx === m.rowIdx) refreshRecordPopup(m);
+    autoSaveToSheet(m.rowIdx);
+    schedulePersistDraft();
+  };
 
   calcLiveValues(m); // initial paint for computed popup rows
 
@@ -1155,6 +1199,9 @@ function openDetailPopup(m: MemberRow) {
 
 function closeDetailPopup() {
   detailOverlay.classList.add('hidden');
+  popupMorePanel.classList.add('hidden');
+  popupMoreBtn.textContent = 'More';
+  popupMoreBtn.setAttribute('aria-expanded', 'false');
   syncBodyScrollLock();
 }
 
@@ -1198,6 +1245,8 @@ function autoSaveToSheet(rowIdx: number) {
     loanRepayment,
     advRepayment,
     riskFund,
+    regFee,
+    passBook,
     fine,
     fineDeduction,
     shareDeduction,
@@ -1208,6 +1257,9 @@ function autoSaveToSheet(rowIdx: number) {
     Cash: cash, Paybill: paybill, Bank: bank,
     LoanRepayment: loanRepayment, AdvanceRepayment: advRepayment,
     RiskFund: riskFund,
+    RegFee: regFee,
+    RegistrationFee: regFee,
+    PassBook: passBook,
     Fine: fine,
     FineDeduction: fineDeduction,
     ShareDeduction: shareDeduction,
@@ -1273,6 +1325,8 @@ function applyContributions() {
       loanRepayment,
       advRepayment,
       riskFund,
+      regFee,
+      passBook,
       fine,
       fineDeduction,
       shareDeduction,
@@ -1284,6 +1338,9 @@ function applyContributions() {
       Cash: cash, Paybill: paybill, Bank: bank,
       LoanRepayment: loanRepayment, AdvanceRepayment: advRepayment,
       RiskFund: riskFund,
+      RegFee: regFee,
+      RegistrationFee: regFee,
+      PassBook: passBook,
       Fine: fine,
       FineDeduction: fineDeduction,
       ShareDeduction: shareDeduction,

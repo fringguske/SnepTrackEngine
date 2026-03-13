@@ -255,12 +255,12 @@
           </div>
         </div>
 
-        <div class="popup-section-title">Inputs</div>
-        <div class="popup-grid popup-grid-inputs">
-          <div class="popup-chip">
-            <span class="popup-chip-lbl">Risk Fund (max 50)</span>
-            <input type="number" class="popup-amt-inp" id="popupRiskFund" placeholder="50" min="0" max="50" step="1" />
-          </div>
+      <div class="popup-section-title">Inputs</div>
+      <div class="popup-grid popup-grid-inputs">
+        <div class="popup-chip">
+          <span class="popup-chip-lbl">Risk Fund (max 50)</span>
+          <input type="number" class="popup-amt-inp" id="popupRiskFund" placeholder="50" min="0" max="50" step="1" />
+        </div>
           <div class="popup-chip">
             <span class="popup-chip-lbl">Loan Repayment</span>
             <input type="number" class="popup-amt-inp" id="popupLoanRepayment" placeholder="0" min="0" step="0.01" />
@@ -285,19 +285,33 @@
             <span class="popup-chip-lbl">Advance Deduction</span>
             <input type="number" class="popup-amt-inp" id="popupAdvanceDeduction" placeholder="0" min="0" step="0.01" />
           </div>
-          <div class="popup-chip">
-            <span class="popup-chip-lbl">Risk Fund Out</span>
-            <input type="number" class="popup-amt-inp" id="popupRiskFundOut" placeholder="0" min="0" step="0.01" />
-          </div>
+        <div class="popup-chip">
+          <span class="popup-chip-lbl">Risk Fund Out</span>
+          <input type="number" class="popup-amt-inp" id="popupRiskFundOut" placeholder="0" min="0" step="0.01" />
         </div>
+      </div>
 
-        <div class="popup-section-title">Computed</div>
-        <div class="popup-grid popup-grid-computed">
-          <div class="popup-chip popup-chip-wide">
-            <span class="popup-chip-lbl">Monthly Share</span>
-            <span class="popup-chip-val" id="popupMShare">KSh 0.00</span>
+      <button class="popup-more-btn" id="popupMoreBtn" type="button" aria-expanded="false">More</button>
+      <div class="popup-more-panel hidden" id="popupMorePanel">
+        <div class="popup-grid popup-grid-more">
+          <div class="popup-chip">
+            <span class="popup-chip-lbl">Reg. Fee</span>
+            <input type="number" class="popup-amt-inp" id="popupRegFee" placeholder="0" min="0" step="0.01" />
+          </div>
+          <div class="popup-chip">
+            <span class="popup-chip-lbl">PassBook Fee</span>
+            <input type="number" class="popup-amt-inp" id="popupPassBook" placeholder="0" min="0" step="0.01" />
           </div>
         </div>
+      </div>
+
+      <div class="popup-section-title">Computed</div>
+      <div class="popup-grid popup-grid-computed">
+        <div class="popup-chip popup-chip-wide">
+          <span class="popup-chip-lbl">Monthly Share</span>
+          <span class="popup-chip-val" id="popupMShare">KSh 0.00</span>
+        </div>
+      </div>
 
         <!-- Live computed results -->
         <div class="popup-computed">
