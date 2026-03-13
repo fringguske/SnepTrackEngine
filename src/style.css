@@ -963,6 +963,9 @@ body {
   justify-content: center;
   padding: 12px;
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
   animation: fadeIn 0.18s ease;
 }
 
@@ -988,10 +991,33 @@ body {
   width: 100%;
   max-width: 360px;
   max-height: calc(100vh - 24px);
+  max-height: calc(100dvh - 24px);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  animation: popUp 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.popup-scroll {
+  flex: 1;
+  min-height: 0;
   overflow: auto;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
-  animation: popUp 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
+  touch-action: pan-y;
+}
+
+.popup-footer {
+  padding: 12px 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+  background: rgba(18, 19, 31, 0.75);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.popup-footer .popup-dismiss {
+  width: 100%;
+  margin: 0;
 }
 
 @keyframes popUp {
@@ -1137,6 +1163,15 @@ body {
   font-weight: 700;
   color: var(--text);
   font-variant-numeric: tabular-nums;
+}
+
+.popup-section-title {
+  padding: 12px 16px 6px;
+  font-size: 0.64rem;
+  font-weight: 800;
+  color: rgba(232, 234, 246, 0.75);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
 }
 
 .popup-chip-val.interest-val {

@@ -211,105 +211,117 @@
         </button>
       </div>
 
-      <!-- Expected chip -->
-      <div class="popup-expected-row">
-        <span class="popup-exp-lbl">Total Expected</span>
-        <span class="popup-exp-val" id="popupExpected">KSh 0.00</span>
+      <div class="popup-scroll">
+        <!-- Expected chip -->
+        <div class="popup-expected-row">
+          <span class="popup-exp-lbl">Total Expected</span>
+          <span class="popup-exp-val" id="popupExpected">KSh 0.00</span>
+        </div>
+
+        <div class="popup-section-title">Snapshot</div>
+        <div class="popup-grid popup-grid-static">
+          <div class="popup-chip">
+            <span class="popup-chip-lbl">Total Shares</span>
+            <span class="popup-chip-val" id="popupTotalShares">KSh 0.00</span>
+          </div>
+          <div class="popup-chip">
+            <span class="popup-chip-lbl">Loan Balance</span>
+            <span class="popup-chip-val" id="popupLoanBalance">KSh 0.00</span>
+          </div>
+          <div class="popup-chip popup-chip-wide popup-chip-accent">
+            <span class="popup-chip-lbl">Diff (Total Shares - Loan Balance)</span>
+            <span class="popup-chip-val" id="popupShareLoanDiff">KSh 0.00</span>
+          </div>
+          <div class="popup-chip">
+            <span class="popup-chip-lbl">Principal Loan</span>
+            <span class="popup-chip-val" id="popupPrincipal">KSh 0.00</span>
+          </div>
+          <div class="popup-chip">
+            <span class="popup-chip-lbl">Installment</span>
+            <span class="popup-chip-val" id="popupInstallment">KSh 0.00</span>
+          </div>
+          <div class="popup-chip">
+            <span class="popup-chip-lbl">Reducing Int. (1.5%)</span>
+            <span class="popup-chip-val interest-val" id="popupLoanInterest">KSh 0.00</span>
+          </div>
+          <div class="popup-chip">
+            <span class="popup-chip-lbl">Advance Balance</span>
+            <span class="popup-chip-val" id="popupAdvBalance">KSh 0.00</span>
+          </div>
+          <div class="popup-chip">
+            <span class="popup-chip-lbl">Adv. Interest (10%)</span>
+            <span class="popup-chip-val interest-val" id="popupAdvInterest">KSh 0.00</span>
+          </div>
+        </div>
+
+        <div class="popup-section-title">Inputs</div>
+        <div class="popup-grid popup-grid-inputs">
+          <div class="popup-chip">
+            <span class="popup-chip-lbl">Risk Fund (max 50)</span>
+            <input type="number" class="popup-amt-inp" id="popupRiskFund" placeholder="50" min="0" max="50" step="1" />
+          </div>
+          <div class="popup-chip">
+            <span class="popup-chip-lbl">Loan Repayment</span>
+            <input type="number" class="popup-amt-inp" id="popupLoanRepayment" placeholder="0" min="0" step="0.01" />
+          </div>
+          <div class="popup-chip">
+            <span class="popup-chip-lbl">Adv. Repayment</span>
+            <input type="number" class="popup-amt-inp" id="popupAdvRepayment" placeholder="0" min="0" step="0.01" />
+          </div>
+          <div class="popup-chip">
+            <span class="popup-chip-lbl">Fine</span>
+            <input type="number" class="popup-amt-inp" id="popupFine" placeholder="0" min="0" step="0.01" />
+          </div>
+          <div class="popup-chip">
+            <span class="popup-chip-lbl">Fine Deduction</span>
+            <input type="number" class="popup-amt-inp" id="popupFineDeduction" placeholder="0" min="0" step="0.01" />
+          </div>
+          <div class="popup-chip">
+            <span class="popup-chip-lbl">Share Deduction</span>
+            <input type="number" class="popup-amt-inp" id="popupShareDeduction" placeholder="0" min="0" step="0.01" />
+          </div>
+          <div class="popup-chip">
+            <span class="popup-chip-lbl">Advance Deduction</span>
+            <input type="number" class="popup-amt-inp" id="popupAdvanceDeduction" placeholder="0" min="0" step="0.01" />
+          </div>
+          <div class="popup-chip">
+            <span class="popup-chip-lbl">Risk Fund Out</span>
+            <input type="number" class="popup-amt-inp" id="popupRiskFundOut" placeholder="0" min="0" step="0.01" />
+          </div>
+        </div>
+
+        <div class="popup-section-title">Computed</div>
+        <div class="popup-grid popup-grid-computed">
+          <div class="popup-chip popup-chip-wide">
+            <span class="popup-chip-lbl">Monthly Share</span>
+            <span class="popup-chip-val" id="popupMShare">KSh 0.00</span>
+          </div>
+        </div>
+
+        <!-- Live computed results -->
+        <div class="popup-computed">
+          <div class="popup-comp-row">
+            <span class="popup-comp-lbl">Total Cash</span>
+            <span class="popup-comp-val" id="popupTotalCash">KSh 0.00</span>
+          </div>
+          <div class="popup-comp-row">
+            <span class="popup-comp-lbl">Total Advance</span>
+            <span class="popup-comp-val" id="popupTotalAdvance">KSh 0.00</span>
+          </div>
+          <div class="popup-comp-row">
+            <span class="popup-comp-lbl">Total Repaid</span>
+            <span class="popup-comp-val" id="popupTotalRepaid">KSh 0.00</span>
+          </div>
+          <div class="popup-comp-row computed-highlight">
+            <span class="popup-comp-lbl">Monthly Share ~</span>
+            <span class="popup-comp-val highlight-val" id="popupMShareResult">KSh 0.00</span>
+          </div>
+        </div>
       </div>
 
-      <!-- Breakdown grid -->
-      <div class="popup-grid">
-        <div class="popup-chip">
-          <span class="popup-chip-lbl">Principal Loan</span>
-          <span class="popup-chip-val" id="popupPrincipal">KSh 0.00</span>
-        </div>
-        <div class="popup-chip">
-          <span class="popup-chip-lbl">Installment</span>
-          <span class="popup-chip-val" id="popupInstallment">KSh 0.00</span>
-        </div>
-        <div class="popup-chip">
-          <span class="popup-chip-lbl">Total Shares</span>
-          <span class="popup-chip-val" id="popupTotalShares">KSh 0.00</span>
-        </div>
-        <div class="popup-chip">
-          <span class="popup-chip-lbl">Loan Balance</span>
-          <span class="popup-chip-val" id="popupLoanBalance">KSh 0.00</span>
-        </div>
-        <div class="popup-chip popup-chip-wide popup-chip-accent">
-          <span class="popup-chip-lbl">Diff (Total Shares - Loan Balance)</span>
-          <span class="popup-chip-val" id="popupShareLoanDiff">KSh 0.00</span>
-        </div>
-        <div class="popup-chip">
-          <span class="popup-chip-lbl">Reducing Int. (1.5%)</span>
-          <span class="popup-chip-val interest-val" id="popupLoanInterest">KSh 0.00</span>
-        </div>
-        <div class="popup-chip">
-          <span class="popup-chip-lbl">Advance Balance</span>
-          <span class="popup-chip-val" id="popupAdvBalance">KSh 0.00</span>
-        </div>
-        <div class="popup-chip">
-          <span class="popup-chip-lbl">Adv. Interest (10%)</span>
-          <span class="popup-chip-val interest-val" id="popupAdvInterest">KSh 0.00</span>
-        </div>
-        <div class="popup-chip">
-          <span class="popup-chip-lbl">Monthly Share</span>
-          <span class="popup-chip-val" id="popupMShare">KSh 0.00</span>
-        </div>
-        <div class="popup-chip">
-          <span class="popup-chip-lbl">Risk Fund (max 50)</span>
-          <input type="number" class="popup-amt-inp" id="popupRiskFund" placeholder="50" min="0" max="50" step="1" />
-        </div>
-        <div class="popup-chip">
-          <span class="popup-chip-lbl">Loan Repayment</span>
-          <input type="number" class="popup-amt-inp" id="popupLoanRepayment" placeholder="0" min="0" step="0.01" />
-        </div>
-        <div class="popup-chip">
-          <span class="popup-chip-lbl">Adv. Repayment</span>
-          <input type="number" class="popup-amt-inp" id="popupAdvRepayment" placeholder="0" min="0" step="0.01" />
-        </div>
-        <div class="popup-chip">
-          <span class="popup-chip-lbl">Fine</span>
-          <input type="number" class="popup-amt-inp" id="popupFine" placeholder="0" min="0" step="0.01" />
-        </div>
-        <div class="popup-chip">
-          <span class="popup-chip-lbl">Fine Deduction</span>
-          <input type="number" class="popup-amt-inp" id="popupFineDeduction" placeholder="0" min="0" step="0.01" />
-        </div>
-        <div class="popup-chip">
-          <span class="popup-chip-lbl">Share Deduction</span>
-          <input type="number" class="popup-amt-inp" id="popupShareDeduction" placeholder="0" min="0" step="0.01" />
-        </div>
-        <div class="popup-chip">
-          <span class="popup-chip-lbl">Advance Deduction</span>
-          <input type="number" class="popup-amt-inp" id="popupAdvanceDeduction" placeholder="0" min="0" step="0.01" />
-        </div>
-        <div class="popup-chip">
-          <span class="popup-chip-lbl">Risk Fund Out</span>
-          <input type="number" class="popup-amt-inp" id="popupRiskFundOut" placeholder="0" min="0" step="0.01" />
-        </div>
+      <div class="popup-footer">
+        <button class="popup-dismiss" id="popupDismiss">Close</button>
       </div>
-
-      <!-- Live computed results -->
-      <div class="popup-computed">
-        <div class="popup-comp-row">
-          <span class="popup-comp-lbl">Total Cash</span>
-          <span class="popup-comp-val" id="popupTotalCash">KSh 0.00</span>
-        </div>
-        <div class="popup-comp-row">
-          <span class="popup-comp-lbl">Total Advance</span>
-          <span class="popup-comp-val" id="popupTotalAdvance">KSh 0.00</span>
-        </div>
-        <div class="popup-comp-row">
-          <span class="popup-comp-lbl">Total Repaid</span>
-          <span class="popup-comp-val" id="popupTotalRepaid">KSh 0.00</span>
-        </div>
-        <div class="popup-comp-row computed-highlight">
-          <span class="popup-comp-lbl">Monthly Share ~</span>
-          <span class="popup-comp-val highlight-val" id="popupMShareResult">KSh 0.00</span>
-        </div>
-      </div>
-
-      <button class="popup-dismiss" id="popupDismiss">Close</button>
     </div>
   </div>
 
@@ -329,42 +341,46 @@
         </button>
       </div>
 
-      <div class="record-tabs" role="tablist" aria-label="Member record tabs">
-        <button class="record-tab active" id="savingsTabBtn" type="button">Savings Record</button>
-        <button class="record-tab" id="loanRecordTabBtn" type="button">Loan Repayment Record</button>
-      </div>
+      <div class="popup-scroll">
+        <div class="record-tabs" role="tablist" aria-label="Member record tabs">
+          <button class="record-tab active" id="savingsTabBtn" type="button">Savings Record</button>
+          <button class="record-tab" id="loanRecordTabBtn" type="button">Loan Repayment Record</button>
+        </div>
 
-      <div class="record-panel" id="savingsPanel">
-        <div class="record-grid">
-          <div class="record-item">
-            <span class="record-label">Savings (Akiba)</span>
-            <span class="record-value" id="recordSavingsValue">-</span>
+        <div class="record-panel" id="savingsPanel">
+          <div class="record-grid">
+            <div class="record-item">
+              <span class="record-label">Savings (Akiba)</span>
+              <span class="record-value" id="recordSavingsValue">-</span>
+            </div>
+            <div class="record-item">
+              <span class="record-label">Balance (Baki)</span>
+              <span class="record-value" id="recordSavingsBalance">-</span>
+            </div>
           </div>
-          <div class="record-item">
-            <span class="record-label">Balance (Baki)</span>
-            <span class="record-value" id="recordSavingsBalance">-</span>
+        </div>
+
+        <div class="record-panel hidden" id="loanRecordPanel">
+          <div class="record-grid">
+            <div class="record-item">
+              <span class="record-label">Principal</span>
+              <span class="record-value" id="recordLoanPrincipal">-</span>
+            </div>
+            <div class="record-item">
+              <span class="record-label">Interest (Faida)</span>
+              <span class="record-value" id="recordLoanInterest">-</span>
+            </div>
+            <div class="record-item record-item-full">
+              <span class="record-label">Balance (Baki)</span>
+              <span class="record-value" id="recordLoanBalance">-</span>
+            </div>
           </div>
         </div>
       </div>
 
-      <div class="record-panel hidden" id="loanRecordPanel">
-        <div class="record-grid">
-          <div class="record-item">
-            <span class="record-label">Principal</span>
-            <span class="record-value" id="recordLoanPrincipal">-</span>
-          </div>
-          <div class="record-item">
-            <span class="record-label">Interest (Faida)</span>
-            <span class="record-value" id="recordLoanInterest">-</span>
-          </div>
-          <div class="record-item record-item-full">
-            <span class="record-label">Balance (Baki)</span>
-            <span class="record-value" id="recordLoanBalance">-</span>
-          </div>
-        </div>
+      <div class="popup-footer">
+        <button class="popup-dismiss" id="recordDismiss">Close</button>
       </div>
-
-      <button class="popup-dismiss" id="recordDismiss">Close</button>
     </div>
   </div>
 

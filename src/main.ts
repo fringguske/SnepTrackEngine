@@ -1021,13 +1021,14 @@ function openDetailPopup(m: MemberRow) {
   popupMemberName.textContent = m.isInactive ? `${m.memberName} (InActive)` : m.memberName;
 
   popupExpected.textContent = `KSh ${fmt(m.expected)}`;
-  popupPrincipal.textContent = m.principal > 0 ? fmt(m.principal) : MONEY_PLACEHOLDER;
+  // Always show these balances even when 0 (per UI rules).
+  popupPrincipal.textContent = fmt(m.principal);
   popupInstallment.textContent = m.installment > 0 ? fmt(m.installment) : MONEY_PLACEHOLDER;
-  popupTotalShares.textContent = m.totalShares > 0 ? fmt(m.totalShares) : MONEY_PLACEHOLDER;
-  popupLoanBalance.textContent = m.loanBalance > 0 ? fmt(m.loanBalance) : MONEY_PLACEHOLDER;
+  popupTotalShares.textContent = fmt(m.totalShares);
+  popupLoanBalance.textContent = fmt(m.loanBalance);
   popupShareLoanDiff.textContent = fmt(m.totalShares - m.loanBalance);
   popupLoanInterest.textContent = m.loanInterest > 0 ? fmt(m.loanInterest) : MONEY_PLACEHOLDER;
-  popupAdvBalance.textContent = m.advanceBalance > 0 ? fmt(m.advanceBalance) : MONEY_PLACEHOLDER;
+  popupAdvBalance.textContent = fmt(m.advanceBalance);
   popupAdvInterest.textContent = m.advanceInterest > 0 ? fmt(m.advanceInterest) : MONEY_PLACEHOLDER;
   popupMShare.textContent = fmt(syncDerivedPaymentState(m).monthlyShare);
 
@@ -1041,6 +1042,25 @@ function openDetailPopup(m: MemberRow) {
   popupAdvanceDeduction.value = payData.advanceDeduction ? payData.advanceDeduction.toString() : '';
   popupRiskFundOut.value = payData.riskFundOut ? payData.riskFundOut.toString() : '';
   setDetailPopupEditableState(!m.isInactive);
+
+  // Conditionally hide chips that don't apply, to reduce clutter on mobile.
+  // Always show: advance balance, principal loan, loan balance (even when 0).
+  const setChipHidden = (el: Element | null, hidden: boolean) => {
+    const chip = el?.closest('.popup-chip') as HTMLElement | null;
+    if (!chip) return;
+    chip.classList.toggle('hidden', hidden);
+  };
+
+  const advanceIsZero = m.advanceBalance <= 0;
+  setChipHidden(popupAdvRepayment, advanceIsZero);
+  setChipHidden(popupAdvInterest, advanceIsZero);
+  setChipHidden(popupAdvanceDeduction, advanceIsZero);
+
+  const principalIsZero = m.principal <= 0;
+  setChipHidden(popupInstallment, principalIsZero);
+  setChipHidden(popupLoanRepayment, principalIsZero);
+  setChipHidden(popupShareDeduction, principalIsZero);
+  setChipHidden(popupLoanInterest, principalIsZero);
 
   popupRiskFund.oninput = () => {
     let val = parseInt(popupRiskFund.value) || 0;
@@ -1257,7 +1277,45 @@ function applyContributions() {
     autoSaveToSheet(rowIdx);
   }
 
-  const buf = XLSX.write(processedWorkbook, { bookType: 'xlsx', type: 'buffer' }) as ArrayBuffer;
+  // Normalize used range for better compatibility with mobile spreadsheet viewers.
+  // Some apps open at the bottom/right of the used range and/or restrict scrolling to that range.
+  // We keep: header row + all header columns + all member rows.
+  const exportMaxRow = (() => {
+    let maxRow = 1; // at least include header + first data row
+    for (const r of memberRowMap.keys()) if (r > maxRow) maxRow = r;
+    return maxRow;
+  })();
+
+  const exportMaxCol = (() => {
+    let lastUsedCol = 0;
+    let emptyRun = 0;
+    const maxC = range.e.c;
+    for (let c = 0; c <= maxC; c++) {
+      const headerCell = sheet[XLSX.utils.encode_cell({ r: 0, c })];
+      const row2Cell = sheet[XLSX.utils.encode_cell({ r: 1, c })];
+      const headerUsed = !!(headerCell && ((headerCell.v !== undefined && headerCell.v !== null && headerCell.v !== '') || headerCell.f));
+      const row2Used = !!(row2Cell && ((row2Cell.v !== undefined && row2Cell.v !== null && row2Cell.v !== '') || row2Cell.f));
+      if (headerUsed || row2Used) {
+        lastUsedCol = c;
+        emptyRun = 0;
+        continue;
+      }
+      if (c > lastUsedCol) {
+        emptyRun++;
+        if (emptyRun >= 64) break;
+      }
+    }
+
+    for (const cIdx of Object.values(payColIdx)) {
+      if (typeof cIdx === 'number' && cIdx > lastUsedCol) lastUsedCol = cIdx;
+    }
+
+    return lastUsedCol;
+  })();
+
+  sheet['!ref'] = XLSX.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: exportMaxRow, c: exportMaxCol } });
+
+  const buf = XLSX.write(processedWorkbook, { bookType: 'xlsx', type: 'array' }) as ArrayBuffer;
   const blob = new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
